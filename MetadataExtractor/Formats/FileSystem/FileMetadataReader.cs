@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +30,7 @@ namespace MetadataExtractor.Formats.FileSystem
     public sealed class FileMetadataReader
     {
         /// <exception cref="System.IO.IOException"/>
+        [NotNull]
         public FileMetadataDirectory Read([NotNull] string file)
         {
             var attr = File.GetAttributes(file);

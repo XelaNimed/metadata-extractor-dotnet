@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,12 +23,17 @@
 #endregion
 
 using System.IO;
+using System.Linq;
 using JetBrains.Annotations;
-#if !PORTABLE
 using System.Collections.Generic;
 using MetadataExtractor.Formats.FileSystem;
-#endif
 using MetadataExtractor.IO;
+
+#if NET35
+using DirectoryList = System.Collections.Generic.IList<MetadataExtractor.Directory>;
+#else
+using DirectoryList = System.Collections.Generic.IReadOnlyList<MetadataExtractor.Directory>;
+#endif
 
 namespace MetadataExtractor.Formats.Gif
 {
@@ -36,32 +41,24 @@ namespace MetadataExtractor.Formats.Gif
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public static class GifMetadataReader
     {
-#if !PORTABLE
         /// <exception cref="System.IO.IOException"/>
         [NotNull]
-        public static
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadMetadata([NotNull] string filePath)
+        public static DirectoryList ReadMetadata([NotNull] string filePath)
         {
             var directories = new List<Directory>(2);
 
             using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                directories.Add(ReadMetadata(stream));
+                directories.AddRange(ReadMetadata(stream));
 
             directories.Add(new FileMetadataReader().Read(filePath));
 
             return directories;
         }
-#endif
 
         [NotNull]
-        public static GifHeaderDirectory ReadMetadata([NotNull] Stream stream)
+        public static DirectoryList ReadMetadata([NotNull] Stream stream)
         {
-            return new GifReader().Extract(new SequentialStreamReader(stream));
+            return new GifReader().Extract(new SequentialStreamReader(stream)).ToList();
         }
     }
 }

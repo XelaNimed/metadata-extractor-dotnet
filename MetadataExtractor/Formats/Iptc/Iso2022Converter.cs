@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,7 +43,7 @@ namespace MetadataExtractor.Formats.Iptc
             if (bytes.Length > 2 && bytes[0] == Esc && bytes[1] == PercentSign && bytes[2] == LatinCapitalG)
                 return "UTF-8";
 
-            if (bytes.Length > 3 && bytes[0] == Esc && (bytes[3] | bytes[2] << 8 | bytes[1] << 16) == Dot && bytes[4] == LatinCapitalA)
+            if (bytes.Length > 3 && bytes[0] == Esc && (bytes[3] | (bytes[2] << 8) | (bytes[1] << 16)) == Dot && bytes[4] == LatinCapitalA)
                 return "ISO-8859-1";
 
             return null;
@@ -83,7 +83,7 @@ namespace MetadataExtractor.Formats.Iptc
 
             if (ascii)
             {
-#if PORTABLE
+#if NETSTANDARD1_3
                 return Encoding.UTF8;
 #else
                 return Encoding.ASCII;

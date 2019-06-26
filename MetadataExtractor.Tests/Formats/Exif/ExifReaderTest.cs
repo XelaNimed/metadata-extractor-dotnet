@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
 using MetadataExtractor.Formats.Exif;
@@ -33,134 +32,127 @@ using Xunit;
 
 namespace MetadataExtractor.Tests.Formats.Exif
 {
-    /// <summary>JUnit test case for class ExifReader.</summary>
+    /// <summary>Unit tests for <see cref="ExifReader"/>.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class ExifReaderTest
     {
         #region Helpers
 
         [NotNull]
-        public static IList<Directory> ProcessSegmentBytes([NotNull] string filePath)
+        public static IList<Directory> ProcessSegmentBytes([NotNull] string filePath, JpegSegmentType type)
         {
-            return new ExifReader().ReadJpegSegments(new[] { File.ReadAllBytes(filePath) }, JpegSegmentType.App1).ToList();
+            var segment = new JpegSegment(type, TestDataUtil.GetBytes(filePath), 0);
+
+            return new ExifReader().ReadJpegSegments(new[] { segment }).ToList();
         }
 
         [NotNull]
-        public static T ProcessSegmentBytes<T>([NotNull] string filePath) where T : Directory
+        public static T ProcessSegmentBytes<T>([NotNull] string filePath, JpegSegmentType type) where T : Directory
         {
-            return ProcessSegmentBytes(filePath).OfType<T>().First();
+            return ProcessSegmentBytes(filePath, type).OfType<T>().First();
         }
 
         #endregion
 
         [Fact]
-        public void TestReadJpegSegmentsWithNullDataThrows()
+        public void ReadJpegSegmentsWithNullDataThrows()
         {
             // ReSharper disable once AssignNullToNotNullAttribute
-            Assert.Throws<ArgumentNullException>(() => new ExifReader().ReadJpegSegments(null, JpegSegmentType.App1));
+            Assert.Throws<ArgumentNullException>(() => new ExifReader().ReadJpegSegments(null));
         }
 
         [Fact]
-        public void TestLoadFujifilmJpeg()
+        public void LoadFujifilmJpeg()
         {
-            var directory = ProcessSegmentBytes<ExifSubIfdDirectory>("Tests/Data/withExif.jpg.app1");
+            var directory = ProcessSegmentBytes<ExifSubIfdDirectory>("Data/withExif.jpg.app1", JpegSegmentType.App1);
 
             Assert.Equal("80", directory.GetDescription(ExifDirectoryBase.TagIsoEquivalent));
         }
 
         [Fact]
-        public void TestReadJpegSegmentWithNoExifData()
+        public void ReadJpegSegmentWithNoExifData()
         {
-            var badExifData = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-            var directories = new ExifReader().ReadJpegSegments(new [] { badExifData }, JpegSegmentType.App1);
+            var badExifSegment = new JpegSegment(JpegSegmentType.App1, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, offset: 0);
+            var directories = new ExifReader().ReadJpegSegments(new [] { badExifSegment });
             Assert.Equal(0, directories.Count);
         }
 
         [Fact]
-        public void TestCrashRegressionTest()
+        public void CrashRegressionTest()
         {
             // This image was created via a resize in ACDSee.
             // It seems to have a reference to an IFD starting outside the data segment.
             // I've noticed that ACDSee reports a Comment for this image, yet ExifReader doesn't report one.
-            var directory = ProcessSegmentBytes<ExifSubIfdDirectory>("Tests/Data/crash01.jpg.app1");
+            var directory = ProcessSegmentBytes<ExifSubIfdDirectory>("Data/crash01.jpg.app1", JpegSegmentType.App1);
             Assert.True(directory.TagCount > 0);
         }
 
         [Fact]
-        public void TestDateTime()
+        public void DateTime()
         {
-            var directory = ProcessSegmentBytes<ExifIfd0Directory>("Tests/Data/manuallyAddedThumbnail.jpg.app1");
+            var directory = ProcessSegmentBytes<ExifIfd0Directory>("Data/manuallyAddedThumbnail.jpg.app1", JpegSegmentType.App1);
             Assert.Equal("2002:11:27 18:00:35", directory.GetString(ExifDirectoryBase.TagDateTime));
         }
 
         [Fact]
-        public void TestThumbnailXResolution()
+        public void ThumbnailXResolution()
         {
-            var directory = ProcessSegmentBytes<ExifThumbnailDirectory>("Tests/Data/manuallyAddedThumbnail.jpg.app1");
+            var directory = ProcessSegmentBytes<ExifThumbnailDirectory>("Data/manuallyAddedThumbnail.jpg.app1", JpegSegmentType.App1);
             var rational = directory.GetRational(ExifDirectoryBase.TagXResolution);
             Assert.Equal(72, rational.Numerator);
             Assert.Equal(1, rational.Denominator);
         }
 
         [Fact]
-        public void TestThumbnailYResolution()
+        public void ThumbnailYResolution()
         {
-            var directory = ProcessSegmentBytes<ExifThumbnailDirectory>("Tests/Data/manuallyAddedThumbnail.jpg.app1");
+            var directory = ProcessSegmentBytes<ExifThumbnailDirectory>("Data/manuallyAddedThumbnail.jpg.app1", JpegSegmentType.App1);
             var rational = directory.GetRational(ExifDirectoryBase.TagYResolution);
             Assert.Equal(72, rational.Numerator);
             Assert.Equal(1, rational.Denominator);
         }
 
         [Fact]
-        public void TestThumbnailOffset()
+        public void ThumbnailOffset()
         {
-            var directory = ProcessSegmentBytes<ExifThumbnailDirectory>("Tests/Data/manuallyAddedThumbnail.jpg.app1");
+            var directory = ProcessSegmentBytes<ExifThumbnailDirectory>("Data/manuallyAddedThumbnail.jpg.app1", JpegSegmentType.App1);
             Assert.Equal(192, directory.GetInt32(ExifThumbnailDirectory.TagThumbnailOffset));
         }
 
         [Fact]
-        public void TestThumbnailLength()
+        public void ThumbnailLength()
         {
-            var directory = ProcessSegmentBytes<ExifThumbnailDirectory>("Tests/Data/manuallyAddedThumbnail.jpg.app1");
+            var directory = ProcessSegmentBytes<ExifThumbnailDirectory>("Data/manuallyAddedThumbnail.jpg.app1", JpegSegmentType.App1);
             Assert.Equal(2970, directory.GetInt32(ExifThumbnailDirectory.TagThumbnailLength));
         }
 
         [Fact]
-        public void TestThumbnailData()
+        public void ThumbnailCompression()
         {
-            var directory = ProcessSegmentBytes<ExifThumbnailDirectory>("Tests/Data/manuallyAddedThumbnail.jpg.app1");
-            var thumbnailData = directory.ThumbnailData;
-            Assert.NotNull(thumbnailData);
-            Assert.Equal(2970, thumbnailData.Length);
-        }
-
-        [Fact]
-        public void TestThumbnailCompression()
-        {
-            var directory = ProcessSegmentBytes<ExifThumbnailDirectory>("Tests/Data/manuallyAddedThumbnail.jpg.app1");
+            var directory = ProcessSegmentBytes<ExifThumbnailDirectory>("Data/manuallyAddedThumbnail.jpg.app1", JpegSegmentType.App1);
             // 6 means JPEG compression
             Assert.Equal(6, directory.GetInt32(ExifDirectoryBase.TagCompression));
         }
 
         [Fact]
-        public void TestStackOverflowOnRevisitationOfSameDirectory()
+        public void StackOverflowOnRevisitationOfSameDirectory()
         {
             // An error has been discovered in Exif data segments where a directory is referenced
             // repeatedly.  Thanks to Alistair Dickie for providing the sample data used in this
             // unit test.
-            var directories = ProcessSegmentBytes("Tests/Data/recursiveDirectories.jpg.app1");
+            var directories = ProcessSegmentBytes("Data/recursiveDirectories.jpg.app1", JpegSegmentType.App1);
 
             // Mostly we're just happy at this point that we didn't get stuck in an infinite loop.
             Assert.Equal(5, directories.Count);
         }
 
         [Fact]
-        public void TestDifferenceImageAndThumbnailOrientations()
+        public void DifferenceImageAndThumbnailOrientations()
         {
             // This metadata contains different orientations for the thumbnail and the main image.
             // These values used to be merged into a single directory, causing errors.
             // This unit test demonstrates correct behaviour.
-            var directories = ProcessSegmentBytes("Tests/Data/repeatedOrientationTagWithDifferentValues.jpg.app1").ToList();
+            var directories = ProcessSegmentBytes("Data/repeatedOrientationTagWithDifferentValues.jpg.app1", JpegSegmentType.App1).ToList();
 
             var ifd0Directory = directories.OfType<ExifIfd0Directory>().First();
             var thumbnailDirectory = directories.OfType<ExifThumbnailDirectory>().First();

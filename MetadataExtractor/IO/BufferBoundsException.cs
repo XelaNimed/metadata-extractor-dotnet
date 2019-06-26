@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,8 @@
 #endregion
 
 using System.IO;
-#if !PORTABLE
+using JetBrains.Annotations;
+#if !NETSTANDARD1_3
 using System;
 using System.Runtime.Serialization;
 #endif
@@ -34,7 +35,7 @@ namespace MetadataExtractor.IO
     /// Thrown when the index provided to an <see cref="IndexedReader"/> is invalid.
     /// </summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
-#if !PORTABLE
+#if !NETSTANDARD1_3
     [Serializable]
 #endif
     public class BufferBoundsException : IOException
@@ -49,6 +50,7 @@ namespace MetadataExtractor.IO
         {
         }
 
+        [NotNull]
         private static string GetMessage(int index, int bytesRequested, long bufferLength)
         {
             if (index < 0)
@@ -63,8 +65,8 @@ namespace MetadataExtractor.IO
             return $"Attempt to read from beyond end of underlying data source (requested index: {index}, requested count: {bytesRequested}, max index: {bufferLength - 1})";
         }
 
-#if !PORTABLE
-        protected BufferBoundsException(SerializationInfo info, StreamingContext context)
+#if !NETSTANDARD1_3
+        protected BufferBoundsException([NotNull] SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
         }

@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,10 +24,6 @@
 
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-#if !PORTABLE
-using System.IO;
-#endif
-using JetBrains.Annotations;
 
 namespace MetadataExtractor.Formats.Exif
 {
@@ -65,22 +61,5 @@ namespace MetadataExtractor.Formats.Exif
         {
             return _tagNameMap.TryGetValue(tagType, out tagName);
         }
-
-        public bool HasThumbnailData => ThumbnailData != null;
-
-        [CanBeNull]
-        public byte[] ThumbnailData { get; set; }
-
-#if !PORTABLE
-        /// <exception cref="MetadataException"/>
-        /// <exception cref="System.IO.IOException"/>
-        public void WriteThumbnail([NotNull] string filename)
-        {
-            if (ThumbnailData == null)
-                throw new MetadataException("No thumbnail data exists.");
-
-            File.WriteAllBytes(filename, ThumbnailData);
-        }
-#endif
     }
 }

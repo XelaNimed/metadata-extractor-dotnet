@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -31,6 +31,16 @@ using Xunit.Abstractions;
 
 namespace MetadataExtractor.Tests.Formats.Exif
 {
+    /// <summary>
+    /// Long-running test of <see cref="ExifReader"/> that attempts to verify exceptions are not thrown for invalid input.
+    /// </summary>
+    /// <remarks>
+    /// This test takes a valid APP1 segment and reads it in a loop. At each iteration of the loop, one
+    /// byte from within the segment is modified to some different value. Extraction is performed. This may
+    /// cause extraction to fail, but failure should be captured in the returned directories not as an
+    /// exception.
+    /// </remarks>
+    /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class ExifReaderGremlinTest
     {
         private readonly ITestOutputHelper _output;
@@ -43,16 +53,19 @@ namespace MetadataExtractor.Tests.Formats.Exif
         [Fact(Skip = "Don't run on CI machines as it takes an age to complete")]
         public void DoesntThrowNoMatterWhat()
         {
-            RunGremlinTest("Tests/Data/withExif.jpg.app1");
+            RunGremlinTest("Data/withExif.jpg.app1");
         }
 
         private void RunGremlinTest(string filePath)
         {
-            var exifReader = new ExifReader();
             var sw = Stopwatch.StartNew();
 
             var app1 = File.ReadAllBytes(filePath);
-            var segments = new[] { app1 };
+            var segments = new[] { new JpegSegment(JpegSegmentType.App1, app1, 0) };
+
+            Assert.Same(app1, segments[0].Bytes);
+
+            var exifReader = new ExifReader();
 
             for (var i = 0; i < app1.Length; i++)
             {
@@ -66,7 +79,7 @@ namespace MetadataExtractor.Tests.Formats.Exif
                     app1[i] = b;
 
                     // ReSharper disable once ReturnValueOfPureMethodIsNotUsed
-                    exifReader.ReadJpegSegments(segments, JpegSegmentType.App1).ToList();
+                    exifReader.ReadJpegSegments(segments).ToList();
                 }
 
                 app1[i] = original;

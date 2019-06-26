@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Globalization;
 using System.Reflection;
-using System.Threading;
 using Xunit.Sdk;
+
+// ReSharper disable MemberCanBePrivate.Global
 
 namespace MetadataExtractor.Tests
 {
     /// <summary>
     /// Apply this attribute to your test method to replace the
-    /// <see cref="Thread.CurrentThread" /> <see cref="CultureInfo.CurrentCulture" /> and
+    /// <see cref="System.Threading.Thread.CurrentThread" /> <see cref="CultureInfo.CurrentCulture" /> and
     /// <see cref="CultureInfo.CurrentUICulture" /> with another culture.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
@@ -58,29 +59,38 @@ namespace MetadataExtractor.Tests
         public CultureInfo UICulture => _uiCulture.Value;
 
         /// <summary>
-        /// Stores the current <see cref="Thread.CurrentPrincipal" />
-        /// <see cref="CultureInfo.CurrentCulture" /> and <see cref="CultureInfo.CurrentUICulture" />
+        /// Stores the current <see cref="CultureInfo.CurrentCulture" /> and <see cref="CultureInfo.CurrentUICulture" />
         /// and replaces them with the new cultures defined in the constructor.
         /// </summary>
         /// <param name="methodUnderTest">The method under test</param>
         public override void Before(MethodInfo methodUnderTest)
         {
-            _originalCulture = Thread.CurrentThread.CurrentCulture;
-            _originalUiCulture = Thread.CurrentThread.CurrentUICulture;
+            _originalCulture = CultureInfo.CurrentCulture;
+            _originalUiCulture = CultureInfo.CurrentUICulture;
 
-            Thread.CurrentThread.CurrentCulture = Culture;
-            Thread.CurrentThread.CurrentUICulture = UICulture;
+#if NETCOREAPP1_0
+            CultureInfo.CurrentCulture = Culture;
+            CultureInfo.CurrentUICulture = Culture;
+#else
+            System.Threading.Thread.CurrentThread.CurrentCulture = Culture;
+            System.Threading.Thread.CurrentThread.CurrentUICulture = Culture;
+#endif
         }
 
         /// <summary>
         /// Restores the original <see cref="CultureInfo.CurrentCulture" /> and
-        /// <see cref="CultureInfo.CurrentUICulture" /> to <see cref="Thread.CurrentPrincipal" />
+        /// <see cref="CultureInfo.CurrentUICulture" />.
         /// </summary>
         /// <param name="methodUnderTest">The method under test</param>
         public override void After(MethodInfo methodUnderTest)
         {
-            Thread.CurrentThread.CurrentCulture = _originalCulture;
-            Thread.CurrentThread.CurrentUICulture = _originalUiCulture;
+#if NETCOREAPP1_0
+            CultureInfo.CurrentCulture = _originalCulture;
+            CultureInfo.CurrentUICulture = _originalUiCulture;
+#else
+            System.Threading.Thread.CurrentThread.CurrentCulture = _originalCulture;
+            System.Threading.Thread.CurrentThread.CurrentUICulture = _originalUiCulture;
+#endif
         }
     }
 }

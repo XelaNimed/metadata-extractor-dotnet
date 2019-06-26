@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,6 +41,11 @@ namespace MetadataExtractor.IO
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public abstract class SequentialReader
     {
+        protected SequentialReader(bool isMotorolaByteOrder)
+        {
+            IsMotorolaByteOrder = isMotorolaByteOrder;
+        }
+
         /// <summary>Get and set the byte order of this reader. <c>true</c> by default.</summary>
         /// <remarks>
         /// <list type="bullet">
@@ -49,7 +54,11 @@ namespace MetadataExtractor.IO
         /// </list>
         /// </remarks>
         /// <value><c>true</c> for Motorola/big endian, <c>false</c> for Intel/little endian</value>
-        public bool IsMotorolaByteOrder { set; get; } = true;
+        public bool IsMotorolaByteOrder { get; }
+
+        public abstract long Position { get; }
+
+        public abstract SequentialReader WithByteOrder(bool isMotorolaByteOrder);
 
         /// <summary>Returns the required number of bytes from the sequence.</summary>
         /// <param name="count">The number of bytes to be returned</param>
@@ -58,11 +67,17 @@ namespace MetadataExtractor.IO
         [NotNull]
         public abstract byte[] GetBytes(int count);
 
+        /// <summary>Retrieves bytes, writing them into a caller-provided buffer.</summary>
+        /// <param name="buffer">The array to write bytes to.</param>
+        /// <param name="offset">The starting position within <paramref name="buffer"/> to write to.</param>
+        /// <param name="count">The number of bytes to be written.</param>
+        /// <returns>The requested bytes</returns>
+        /// <exception cref="System.IO.IOException"/>
+        public abstract void GetBytes([NotNull] byte[] buffer, int offset, int count);
+
         /// <summary>Skips forward in the sequence.</summary>
         /// <remarks>
-        /// Skips forward in the sequence. If the sequence ends, an
-        /// <see cref="System.IO.IOException"/>
-        /// is thrown.
+        /// Skips forward in the sequence. If the sequence ends, an <see cref="System.IO.IOException"/> is thrown.
         /// </remarks>
         /// <param name="n">the number of byte to skip. Must be zero or greater.</param>
         /// <exception cref="System.IO.IOException">the end of the sequence is reached.</exception>
@@ -83,10 +98,7 @@ namespace MetadataExtractor.IO
         /// <summary>Returns a signed 8-bit int calculated from the next byte the sequence.</summary>
         /// <returns>the 8 bit int value, between 0x00 and 0xFF</returns>
         /// <exception cref="System.IO.IOException"/>
-        public sbyte GetSByte()
-        {
-            return unchecked((sbyte)GetByte());
-        }
+        public sbyte GetSByte() => unchecked((sbyte)GetByte());
 
         /// <summary>Returns an unsigned 16-bit int calculated from the next two bytes of the sequence.</summary>
         /// <returns>the 16 bit int value, between 0x0000 and 0xFFFF</returns>
@@ -198,6 +210,36 @@ namespace MetadataExtractor.IO
                 (long)GetByte() << 56;
         }
 
+        /// <summary>Get an usigned 64-bit integer from the buffer.</summary>
+        /// <returns>the unsigned 64 bit int value, between 0x0000000000000000 and 0xFFFFFFFFFFFFFFFF</returns>
+        /// <exception cref="System.IO.IOException">the buffer does not contain enough bytes to service the request</exception>
+        public ulong GetUInt64()
+        {
+            if (IsMotorolaByteOrder)
+            {
+                // Motorola - MSB first
+                return
+                    (ulong)GetByte() << 56 |
+                    (ulong)GetByte() << 48 |
+                    (ulong)GetByte() << 40 |
+                    (ulong)GetByte() << 32 |
+                    (ulong)GetByte() << 24 |
+                    (ulong)GetByte() << 16 |
+                    (ulong)GetByte() << 8  |
+                           GetByte();
+            }
+            // Intel ordering - LSB first
+            return
+                       GetByte()       |
+                (ulong)GetByte() << 8  |
+                (ulong)GetByte() << 16 |
+                (ulong)GetByte() << 24 |
+                (ulong)GetByte() << 32 |
+                (ulong)GetByte() << 40 |
+                (ulong)GetByte() << 48 |
+                (ulong)GetByte() << 56;
+        }
+
         /// <summary>Gets a s15.16 fixed point float from the buffer.</summary>
         /// <remarks>
         /// Gets a s15.16 fixed point float from the buffer.
@@ -231,18 +273,19 @@ namespace MetadataExtractor.IO
 
         /// <exception cref="System.IO.IOException"/>
         [NotNull]
-        public string GetString(int bytesRequested) => GetString(bytesRequested, Encoding.UTF8);
-
-        /// <exception cref="System.IO.IOException"/>
-        [NotNull]
         public string GetString(int bytesRequested, [NotNull] Encoding encoding)
         {
             var bytes = GetBytes(bytesRequested);
             return encoding.GetString(bytes, 0, bytes.Length);
         }
 
+        public StringValue GetStringValue(int bytesRequested, Encoding encoding = null)
+        {
+            return new StringValue(GetBytes(bytesRequested), encoding);
+        }
+
         /// <summary>
-        /// Creates a String from the stream, ending where <c>byte=='\0'</c> or where <c>length==maxLength</c>.
+        /// Creates a <see cref="String"/> from the stream, ending where <c>byte=='\0'</c> or where <c>length==maxLength</c>.
         /// </summary>
         /// <param name="maxLengthBytes">
         /// The maximum number of bytes to read.  If a <c>\0</c> byte is not reached within this limit,
@@ -260,14 +303,14 @@ namespace MetadataExtractor.IO
         }
 
         /// <summary>
-        /// Creates a String from the stream, ending where <c>byte=='\0'</c> or where <c>length==maxLength</c>.
+        /// Creates a <see cref="StringValue"/> from the stream, ending where <c>byte=='\0'</c> or where <c>length==maxLength</c>.
         /// </summary>
         /// <param name="maxLengthBytes">
         /// The maximum number of bytes to read.  If a <c>\0</c> byte is not reached within this limit,
         /// reading will stop and the string will be truncated to this length.
         /// </param>
         /// <param name="encoding">An optional string encoding to use when interpreting bytes.</param>
-        /// <returns>The read string as a <see cref="StringValue"/></returns>
+        /// <returns>The read string as a <see cref="StringValue"/>, excluding the null terminator.</returns>
         /// <exception cref="System.IO.IOException">The buffer does not contain enough bytes to satisfy this request.</exception>
         public StringValue GetNullTerminatedStringValue(int maxLengthBytes, Encoding encoding = null)
         {
@@ -283,8 +326,9 @@ namespace MetadataExtractor.IO
         /// The maximum number of bytes to read.  If a <c>\0</c> byte is not reached within this limit,
         /// the returned array will be <paramref name="maxLengthBytes"/> long.
         /// </param>
-        /// <returns>The read byte array.</returns>
+        /// <returns>The read byte array, excluding the null terminator.</returns>
         /// <exception cref="System.IO.IOException">The buffer does not contain enough bytes to satisfy this request.</exception>
+        [NotNull]
         public byte[] GetNullTerminatedBytes(int maxLengthBytes)
         {
             var buffer = new byte[maxLengthBytes];
@@ -301,6 +345,17 @@ namespace MetadataExtractor.IO
             if (length > 0)
                 Array.Copy(buffer, bytes, length);
             return bytes;
+        }
+
+        /// <summary>
+        /// Returns true in case the stream supports length checking and distance to the end of the stream is less then number of bytes in parameter.
+        /// Otherwise false.
+        /// </summary>
+        /// <param name="numberOfBytes"></param>
+        /// <returns>True if we going to have an exception while reading next numberOfBytes bytes from the stream</returns>
+        public virtual bool IsCloserToEnd(long numberOfBytes)
+        {
+            return false;
         }
     }
 }

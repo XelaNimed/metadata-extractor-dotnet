@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,11 +35,12 @@ namespace MetadataExtractor.IO
         [NotNull]
         private readonly Stream _stream;
 
-        public SequentialStreamReader([NotNull] Stream stream)
+        public override long Position => _stream.Position;
+
+        public SequentialStreamReader([NotNull] Stream stream, bool isMotorolaByteOrder = true)
+            : base(isMotorolaByteOrder)
         {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-            _stream = stream;
+            _stream = stream ?? throw new ArgumentNullException(nameof(stream));
         }
 
         public override byte GetByte()
@@ -51,19 +52,26 @@ namespace MetadataExtractor.IO
             return unchecked((byte)value);
         }
 
+        public override SequentialReader WithByteOrder(bool isMotorolaByteOrder) => isMotorolaByteOrder == IsMotorolaByteOrder ? this : new SequentialStreamReader(_stream, isMotorolaByteOrder);
+
         public override byte[] GetBytes(int count)
         {
             var bytes = new byte[count];
+            GetBytes(bytes, 0, count);
+            return bytes;
+        }
+
+        public override void GetBytes(byte[] buffer, int offset, int count)
+        {
             var totalBytesRead = 0;
             while (totalBytesRead != count)
             {
-                var bytesRead = _stream.Read(bytes, totalBytesRead, count - totalBytesRead);
+                var bytesRead = _stream.Read(buffer, offset + totalBytesRead, count - totalBytesRead);
                 if (bytesRead == 0)
                     throw new IOException("End of data reached.");
                 totalBytesRead += bytesRead;
                 Debug.Assert(totalBytesRead <= count);
             }
-            return bytes;
         }
 
         public override void Skip(long n)
@@ -86,8 +94,14 @@ namespace MetadataExtractor.IO
             }
             catch (IOException)
             {
+                // Stream ended, or error reading from underlying source
                 return false;
             }
+        }
+
+        public override bool IsCloserToEnd(long numberOfBytes)
+        {
+            return _stream.Position + numberOfBytes > _stream.Length;
         }
     }
 }

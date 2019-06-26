@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace MetadataExtractor.Formats.Exif
 {
@@ -147,6 +148,7 @@ namespace MetadataExtractor.Formats.Exif
         public const int TagPageName = 0x011D;
 
         public const int TagResolutionUnit = 0x0128;
+        public const int TagPageNumber = 0x0129;
 
         public const int TagTransferFunction = 0x012D;
 
@@ -181,6 +183,15 @@ namespace MetadataExtractor.Formats.Exif
         public const int TagJpegTables = 0x015B;
 
         public const int TagJpegProc = 0x0200;
+
+        // 0x0201 can have all kinds of descriptions for thumbnail starting index
+        // 0x0202 can have all kinds of descriptions for thumbnail length
+        public const int TagJpegRestartInterval = 0x0203;
+        public const int TagJpegLosslessPredictors = 0x0205;
+        public const int TagJpegPointTransforms = 0x0206;
+        public const int TagJpegQTables = 0x0207;
+        public const int TagJpegDcTables = 0x0208;
+        public const int TagJpegAcTables = 0x0209;
 
         public const int TagYCbCrCoefficients = 0x0211;
 
@@ -702,7 +713,7 @@ namespace MetadataExtractor.Formats.Exif
         /// <summary>Rational64u.</summary>
         public const int TagGamma = 0xA500;
 
-        public const int TagPrintIm = 0xC4A5;
+        public const int TagPrintImageMatchingInfo = 0xC4A5;
 
         public const int TagPanasonicTitle = 0xC6D2;
 
@@ -712,7 +723,7 @@ namespace MetadataExtractor.Formats.Exif
 
         public const int TagLens = 0xFDEA;
 
-        protected static void AddExifTagNames(Dictionary<int, string> map)
+        protected static void AddExifTagNames([NotNull] Dictionary<int, string> map)
         {
             map[TagInteropIndex] = "Interoperability Index";
             map[TagInteropVersion] = "Interoperability Version";
@@ -741,6 +752,7 @@ namespace MetadataExtractor.Formats.Exif
             map[TagPlanarConfiguration] = "Planar Configuration";
             map[TagPageName] = "Page Name";
             map[TagResolutionUnit] = "Resolution Unit";
+            map[TagPageNumber] = "Page Number";
             map[TagTransferFunction] = "Transfer Function";
             map[TagSoftware] = "Software";
             map[TagDateTime] = "Date/Time";
@@ -757,6 +769,14 @@ namespace MetadataExtractor.Formats.Exif
             map[TagTransferRange] = "Transfer Range";
             map[TagJpegTables] = "JPEG Tables";
             map[TagJpegProc] = "JPEG Proc";
+
+            map[TagJpegRestartInterval] = "JPEG Restart Interval";
+            map[TagJpegLosslessPredictors] = "JPEG Lossless Predictors";
+            map[TagJpegPointTransforms] = "JPEG Point Transforms";
+            map[TagJpegQTables] = "JPEGQ Tables";
+            map[TagJpegDcTables] = "JPEGDC Tables";
+            map[TagJpegAcTables] = "JPEGAC Tables";
+
             map[TagYCbCrCoefficients] = "YCbCr Coefficients";
             map[TagYCbCrSubsampling] = "YCbCr Sub-Sampling";
             map[TagYCbCrPositioning] = "YCbCr Positioning";
@@ -859,7 +879,7 @@ namespace MetadataExtractor.Formats.Exif
             map[TagLensModel] = "Lens Model";
             map[TagLensSerialNumber] = "Lens Serial Number";
             map[TagGamma] = "Gamma";
-            map[TagPrintIm] = "Print IM";
+            map[TagPrintImageMatchingInfo] = "Print Image Matching (PIM) Info";
             map[TagPanasonicTitle] = "Panasonic Title";
             map[TagPanasonicTitle2] = "Panasonic Title (2)";
             map[TagPadding] = "Padding";

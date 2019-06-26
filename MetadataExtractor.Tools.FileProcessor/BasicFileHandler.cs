@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -34,9 +34,9 @@ namespace MetadataExtractor.Tools.FileProcessor
     /// </summary>
     internal class BasicFileHandler : FileHandlerBase
     {
-        public override void OnExtractionSuccess(string filePath, IReadOnlyList<Directory> directories, string relativePath, TextWriter log)
+        public override void OnExtractionSuccess(string filePath, IList<Directory> directories, string relativePath, TextWriter log, long streamPosition)
         {
-            base.OnExtractionSuccess(filePath, directories, relativePath, log);
+            base.OnExtractionSuccess(filePath, directories, relativePath, log, streamPosition);
 
             // Iterate through all values, calling toString to flush out any formatting exceptions
             foreach (var directory in directories)

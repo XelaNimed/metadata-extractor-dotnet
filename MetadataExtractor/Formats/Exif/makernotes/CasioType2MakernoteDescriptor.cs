@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -67,8 +67,6 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
                     return GetContrastDescription();
                 case CasioType2MakernoteDirectory.TagSharpness:
                     return GetSharpnessDescription();
-                case CasioType2MakernoteDirectory.TagPrintImageMatchingInfo:
-                    return GetPrintImageMatchingInfoDescription();
                 case CasioType2MakernoteDirectory.TagPreviewThumbnail:
                     return GetCasioPreviewThumbnailDescription();
                 case CasioType2MakernoteDirectory.TagWhiteBalanceBias:
@@ -135,8 +133,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetFocusMode2Description()
         {
-            int value;
-            if (!Directory.TryGetInt32(CasioType2MakernoteDirectory.TagFocusMode2, out value))
+            if (!Directory.TryGetInt32(CasioType2MakernoteDirectory.TagFocusMode2, out int value))
                 return null;
 
             switch (value)
@@ -174,8 +171,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetObjectDistanceDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(CasioType2MakernoteDirectory.TagObjectDistance, out value))
+            if (!Directory.TryGetInt32(CasioType2MakernoteDirectory.TagObjectDistance, out int value))
                 return null;
             return value + " mm";
         }
@@ -183,8 +179,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetWhiteBalance2Description()
         {
-            int value;
-            if (!Directory.TryGetInt32(CasioType2MakernoteDirectory.TagWhiteBalance2, out value))
+            if (!Directory.TryGetInt32(CasioType2MakernoteDirectory.TagWhiteBalance2, out int value))
                 return null;
             switch (value)
             {
@@ -220,13 +215,6 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         }
 
         [CanBeNull]
-        public string GetPrintImageMatchingInfoDescription()
-        {
-            // TODO research PIM specification http://www.ozhiker.com/electronics/pjmt/jpeg_info/pim.html
-            return Directory.GetString(CasioType2MakernoteDirectory.TagPrintImageMatchingInfo);
-        }
-
-        [CanBeNull]
         public string GetSharpnessDescription()
         {
             return GetIndexedDescription(CasioType2MakernoteDirectory.TagSharpness, "-1", "Normal", "+1");
@@ -247,8 +235,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetFocalLengthDescription()
         {
-            double value;
-            if (!Directory.TryGetDouble(CasioType2MakernoteDirectory.TagFocalLength, out value))
+            if (!Directory.TryGetDouble(CasioType2MakernoteDirectory.TagFocalLength, out double value))
                 return null;
             return GetFocalLengthDescription(value/10d);
         }
@@ -262,8 +249,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetIsoSensitivityDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(CasioType2MakernoteDirectory.TagIsoSensitivity, out value))
+            if (!Directory.TryGetInt32(CasioType2MakernoteDirectory.TagIsoSensitivity, out int value))
                 return null;
 
             switch (value)
@@ -290,8 +276,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetImageSizeDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(CasioType2MakernoteDirectory.TagImageSize, out value))
+            if (!Directory.TryGetInt32(CasioType2MakernoteDirectory.TagImageSize, out int value))
                 return null;
 
             switch (value)
@@ -322,8 +307,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetThumbnailSizeDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(CasioType2MakernoteDirectory.TagThumbnailSize, out value))
+            if (!Directory.TryGetInt32(CasioType2MakernoteDirectory.TagThumbnailSize, out int value))
                 return null;
 
             return value + " bytes";

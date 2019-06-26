@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,12 +26,12 @@ using System.Collections.Generic;
 using System.IO;
 using JetBrains.Annotations;
 using MetadataExtractor.Formats.Bmp;
-#if !PORTABLE
 using MetadataExtractor.Formats.FileSystem;
-#endif
+using MetadataExtractor.Formats.FileType;
 using MetadataExtractor.Formats.Gif;
 using MetadataExtractor.Formats.Ico;
 using MetadataExtractor.Formats.Jpeg;
+using MetadataExtractor.Formats.Netpbm;
 using MetadataExtractor.Formats.Pcx;
 using MetadataExtractor.Formats.Photoshop;
 using MetadataExtractor.Formats.Png;
@@ -39,7 +39,16 @@ using MetadataExtractor.Formats.QuickTime;
 using MetadataExtractor.Formats.Raf;
 using MetadataExtractor.Formats.Tiff;
 using MetadataExtractor.Formats.WebP;
+using MetadataExtractor.Formats.Avi;
 using MetadataExtractor.Util;
+
+#if NET35
+using DirectoryList = System.Collections.Generic.IList<MetadataExtractor.Directory>;
+#else
+using DirectoryList = System.Collections.Generic.IReadOnlyList<MetadataExtractor.Directory>;
+#endif
+
+// ReSharper disable RedundantCaseLabel
 
 namespace MetadataExtractor
 {
@@ -57,6 +66,7 @@ namespace MetadataExtractor
     ///   <item><see cref="BmpMetadataReader"/> for BMP files</item>
     ///   <item><see cref="GifMetadataReader"/> for GIF files</item>
     ///   <item><see cref="IcoMetadataReader"/> for ICO files</item>
+    ///   <item><see cref="NetpbmMetadataReader"/> for Netpbm files (PPM, PGM, PBM, PPM)</item>
     ///   <item><see cref="PcxMetadataReader"/> for PCX files</item>
     ///   <item><see cref="WebPMetadataReader"/> for WebP files</item>
     ///   <item><see cref="RafMetadataReader"/> for RAF files</item>
@@ -78,51 +88,58 @@ namespace MetadataExtractor
         /// <exception cref="ImageProcessingException">The file type is unknown, or processing errors occurred.</exception>
         /// <exception cref="System.IO.IOException"/>
         [NotNull]
-        public static
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadMetadata([NotNull] Stream stream)
+        public static DirectoryList ReadMetadata([NotNull] Stream stream)
         {
             var fileType = FileTypeDetector.DetectFileType(stream);
 
+            var fileTypeDirectory = new FileTypeDirectory(fileType);
+            
             switch (fileType)
             {
                 case FileType.Jpeg:
-                    return JpegMetadataReader.ReadMetadata(stream);
+                    return Append(JpegMetadataReader.ReadMetadata(stream), fileTypeDirectory);
                 case FileType.Tiff:
                 case FileType.Arw:
                 case FileType.Cr2:
                 case FileType.Nef:
                 case FileType.Orf:
                 case FileType.Rw2:
-                    return TiffMetadataReader.ReadMetadata(stream);
+                    return Append(TiffMetadataReader.ReadMetadata(stream), fileTypeDirectory);
                 case FileType.Psd:
-                    return PsdMetadataReader.ReadMetadata(stream);
+                    return Append(PsdMetadataReader.ReadMetadata(stream), fileTypeDirectory);
                 case FileType.Png:
-                    return PngMetadataReader.ReadMetadata(stream);
+                    return Append(PngMetadataReader.ReadMetadata(stream), fileTypeDirectory);
                 case FileType.Bmp:
-                    return new[] { BmpMetadataReader.ReadMetadata(stream) };
+                    return new Directory[] { BmpMetadataReader.ReadMetadata(stream), fileTypeDirectory };
                 case FileType.Gif:
-                    return new[] { GifMetadataReader.ReadMetadata(stream) };
+                    return Append(GifMetadataReader.ReadMetadata(stream), fileTypeDirectory);
                 case FileType.Ico:
-                    return IcoMetadataReader.ReadMetadata(stream);
+                    return Append(IcoMetadataReader.ReadMetadata(stream), fileTypeDirectory);
                 case FileType.Pcx:
-                    return new[] { PcxMetadataReader.ReadMetadata(stream) };
-                case FileType.Riff:
-                    return WebPMetadataReader.ReadMetadata(stream);
+                    return new Directory[] { PcxMetadataReader.ReadMetadata(stream), fileTypeDirectory };
+                case FileType.WebP:
+                    return Append(WebPMetadataReader.ReadMetadata(stream), fileTypeDirectory);
+                case FileType.Avi:
+                    return Append(AviMetadataReader.ReadMetadata(stream), fileTypeDirectory);
                 case FileType.Raf:
-                    return RafMetadataReader.ReadMetadata(stream);
+                    return Append(RafMetadataReader.ReadMetadata(stream), fileTypeDirectory);
                 case FileType.QuickTime:
-                    return QuickTimeMetadataReader.ReadMetadata(stream);
+                    return Append(QuickTimeMetadataReader.ReadMetadata(stream), fileTypeDirectory);
+                case FileType.Netpbm:
+                    return new Directory[] { NetpbmMetadataReader.ReadMetadata(stream), fileTypeDirectory };
+                case FileType.Unknown:
+                    throw new ImageProcessingException("File format could not be determined");
+                case FileType.Riff:
+                case FileType.Wav:
+                case FileType.Crw:
+                default:
+                    throw new ImageProcessingException("File format is not supported");
             }
 
-            throw new ImageProcessingException("File format is not supported");
+            DirectoryList Append(IEnumerable<Directory> list, Directory directory) 
+                => new List<Directory>(list) { directory };
         }
 
-#if !PORTABLE
         /// <summary>Reads metadata from a file.</summary>
         /// <remarks>Unlike <see cref="ReadMetadata(System.IO.Stream)"/>, this overload includes a <see cref="FileMetadataDirectory"/> in the output.</remarks>
         /// <param name="filePath">Location of a file from which data should be read.</param>
@@ -130,13 +147,7 @@ namespace MetadataExtractor
         /// <exception cref="ImageProcessingException">The file type is unknown, or processing errors occurred.</exception>
         /// <exception cref="System.IO.IOException"/>
         [NotNull]
-        public static
-#if NET35
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadMetadata([NotNull] string filePath)
+        public static DirectoryList ReadMetadata([NotNull] string filePath)
         {
             var directories = new List<Directory>();
 
@@ -147,6 +158,5 @@ namespace MetadataExtractor
 
             return directories;
         }
-#endif
     }
 }

@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,23 +24,22 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Text;
-using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
-#if !PORTABLE
 using System.IO.Compression;
-#else
-using Ionic.Zlib;
-#endif
+using System.Linq;
 using JetBrains.Annotations;
 using MetadataExtractor.Formats.Icc;
-#if !PORTABLE
 using MetadataExtractor.Formats.FileSystem;
-#endif
 using MetadataExtractor.Formats.Xmp;
 using MetadataExtractor.IO;
 using MetadataExtractor.Util;
+
+#if NET35
+using DirectoryList = System.Collections.Generic.IList<MetadataExtractor.Directory>;
+#else
+using DirectoryList = System.Collections.Generic.IReadOnlyList<MetadataExtractor.Directory>;
+#endif
 
 namespace MetadataExtractor.Formats.Png
 {
@@ -58,23 +57,17 @@ namespace MetadataExtractor.Formats.Png
             PngChunkType.iCCP,
             PngChunkType.bKGD,
             PngChunkType.tEXt,
+            PngChunkType.zTXt,
             PngChunkType.iTXt,
             PngChunkType.tIME,
             PngChunkType.pHYs,
             PngChunkType.sBIT
         };
 
-#if !PORTABLE
         /// <exception cref="PngProcessingException"/>
         /// <exception cref="System.IO.IOException"/>
         [NotNull]
-        public static
-#if NET35
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadMetadata([NotNull] string filePath)
+        public static DirectoryList ReadMetadata([NotNull] string filePath)
         {
             var directories = new List<Directory>();
 
@@ -85,49 +78,35 @@ namespace MetadataExtractor.Formats.Png
 
             return directories;
         }
-#endif
 
         /// <exception cref="PngProcessingException"/>
         /// <exception cref="System.IO.IOException"/>
         [NotNull]
-        public static
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadMetadata([NotNull] Stream stream)
+        public static DirectoryList ReadMetadata([NotNull] Stream stream)
         {
-            var directories = new List<Directory>();
-
-            var chunks = new PngChunkReader().Extract(new SequentialStreamReader(stream), _desiredChunkTypes);
-
-            foreach (var chunk in chunks)
-            {
-                try
-                {
-                    directories.AddRange(ProcessChunk(chunk));
-                }
-                catch (Exception e)
-                {
-                    Debug.WriteLine(e);
-                }
-            }
-
-            return directories;
+            return new PngChunkReader()
+                .Extract(new SequentialStreamReader(stream), _desiredChunkTypes)
+                .SelectMany(ProcessChunk)
+                .ToList();
         }
+
+        /// <summary>
+        /// The PNG spec states that ISO_8859_1 (Latin-1) encoding should be used for:
+        /// <list type="bullet">
+        ///   <item>"tEXt" and "zTXt" chunks, both for keys and values (https://www.w3.org/TR/PNG/#11tEXt)</item>
+        ///   <item>"iCCP" chunks, for the profile name (https://www.w3.org/TR/PNG/#11iCCP)</item>
+        ///   <item>"sPLT" chunks, for the palette name (https://www.w3.org/TR/PNG/#11sPLT)</item>
+        /// </list>
+        /// Note that "iTXt" chunks use UTF-8 encoding (https://www.w3.org/TR/PNG/#11iTXt).
+        /// <para/>
+        /// For more guidance: http://www.w3.org/TR/PNG-Decoders.html#D.Text-chunk-processing
+        /// </summary>
+        private static readonly Encoding _latin1Encoding = Encoding.GetEncoding("ISO-8859-1");
 
         /// <exception cref="PngProcessingException"/>
         /// <exception cref="System.IO.IOException"/>
         private static IEnumerable<Directory> ProcessChunk([NotNull] PngChunk chunk)
         {
-            // For more guidance:
-            // http://www.w3.org/TR/PNG-Decoders.html#D.Text-chunk-processing
-            // http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html#C.iCCP
-            // by spec, PNG is generally supposed to use this encoding
-            const string defaultEncodingName = "ISO-8859-1";
-            var defaultEncoding = Encoding.GetEncoding(defaultEncodingName);
-
             var chunkType = chunk.ChunkType;
             var bytes = chunk.Bytes;
 
@@ -196,8 +175,14 @@ namespace MetadataExtractor.Formats.Png
                     // Only compression method allowed by the spec is zero: deflate
                     // This assumes 1-byte-per-char, which it is by spec.
                     var bytesLeft = bytes.Length - profileName.Bytes.Length - 2;
+
+                    // http://george.chiramattel.com/blog/2007/09/deflatestream-block-length-does-not-match.html
+                    // First two bytes are part of the zlib specification (RFC 1950), not the deflate specification (RFC 1951).
+                    reader.GetByte(); reader.GetByte();
+                    bytesLeft -= 2;
+
                     var compressedProfile = reader.GetBytes(bytesLeft);
-                    using (var inflaterStream = new InflaterInputStream(new MemoryStream(compressedProfile)))
+                    using (var inflaterStream = new DeflateStream(new MemoryStream(compressedProfile), CompressionMode.Decompress))
                     {
                         var iccDirectory = new IccReader().Extract(new IndexedCapturingReader(inflaterStream));
                         iccDirectory.Parent = directory;
@@ -219,26 +204,80 @@ namespace MetadataExtractor.Formats.Png
             else if (chunkType == PngChunkType.tEXt)
             {
                 var reader = new SequentialByteArrayReader(bytes);
-                var keyword = reader.GetNullTerminatedStringValue(maxLengthBytes: 79).ToString(defaultEncoding);
+                var keyword = reader.GetNullTerminatedStringValue(maxLengthBytes: 79).ToString(_latin1Encoding);
                 var bytesLeft = bytes.Length - keyword.Length - 1;
-                var value = reader.GetNullTerminatedStringValue(bytesLeft, defaultEncoding);
+                var value = reader.GetNullTerminatedStringValue(bytesLeft, _latin1Encoding);
 
                 var textPairs = new List<KeyValuePair> { new KeyValuePair(keyword, value) };
-                var directory = new PngDirectory(PngChunkType.iTXt);
+                var directory = new PngDirectory(PngChunkType.tEXt);
                 directory.Set(PngDirectory.TagTextualData, textPairs);
                 yield return directory;
+            }
+            else if (chunkType == PngChunkType.zTXt)
+            {
+                var reader = new SequentialByteArrayReader(bytes);
+                var keyword = reader.GetNullTerminatedStringValue(maxLengthBytes: 79).ToString(_latin1Encoding);
+                var compressionMethod = reader.GetSByte();
+
+                var bytesLeft = bytes.Length - keyword.Length - 1 - 1 - 1 - 1;
+                byte[] textBytes = null;
+                if (compressionMethod == 0)
+                {
+                    using (var inflaterStream = new DeflateStream(new MemoryStream(bytes, bytes.Length - bytesLeft, bytesLeft), CompressionMode.Decompress))
+                    {
+                        Exception ex = null;
+                        try
+                        {
+                            textBytes = ReadStreamToBytes(inflaterStream);
+                        }
+                        catch (Exception e)
+                        {
+                            ex = e;
+                        }
+
+                        // Work-around no yield-return from catch blocks
+                        if (ex != null)
+                        {
+                            var directory = new PngDirectory(PngChunkType.zTXt);
+                            directory.AddError($"Exception decompressing {nameof(PngChunkType.zTXt)} chunk with keyword \"{keyword}\": {ex.Message}");
+                            yield return directory;
+                        }
+                    }
+                }
+                else
+                {
+                    var directory = new PngDirectory(PngChunkType.zTXt);
+                    directory.AddError("Invalid compression method value");
+                    yield return directory;
+                }
+                if (textBytes != null)
+                {
+                    if (keyword == "XML:com.adobe.xmp")
+                    {
+                        // NOTE in testing images, the XMP has parsed successfully, but we are not extracting tags from it as necessary
+                        yield return new XmpReader().Extract(textBytes);
+                    }
+                    else
+                    {
+                        var textPairs = new List<KeyValuePair> { new KeyValuePair(keyword, new StringValue(textBytes, _latin1Encoding)) };
+                        var directory = new PngDirectory(PngChunkType.zTXt);
+                        directory.Set(PngDirectory.TagTextualData, textPairs);
+                        yield return directory;
+                    }
+                }
             }
             else if (chunkType == PngChunkType.iTXt)
             {
                 var reader = new SequentialByteArrayReader(bytes);
-                var keyword = reader.GetNullTerminatedStringValue(maxLengthBytes: 79).ToString(defaultEncoding);
+                var keyword = reader.GetNullTerminatedStringValue(maxLengthBytes: 79).ToString(_latin1Encoding);
                 var compressionFlag = reader.GetSByte();
                 var compressionMethod = reader.GetSByte();
-                var languageTag = reader.GetNullTerminatedStringValue(bytes.Length, defaultEncoding);
 
-                var translatedKeyword = reader.GetNullTerminatedStringValue(bytes.Length, defaultEncoding);
+                // TODO we currently ignore languageTagBytes and translatedKeywordBytes
+                var languageTagBytes = reader.GetNullTerminatedBytes(bytes.Length);
+                var translatedKeywordBytes = reader.GetNullTerminatedBytes(bytes.Length);
 
-                var bytesLeft = bytes.Length - keyword.Length - 1 - 1 - 1 - languageTag.Bytes.Length - 1 - translatedKeyword.Bytes.Length - 1;
+                var bytesLeft = bytes.Length - keyword.Length - 1 - 1 - 1 - languageTagBytes.Length - 1 - translatedKeywordBytes.Length - 1;
                 byte[] textBytes = null;
                 if (compressionFlag == 0)
                 {
@@ -249,21 +288,24 @@ namespace MetadataExtractor.Formats.Png
                     if (compressionMethod == 0)
                     {
                         using (var inflaterStream = new DeflateStream(new MemoryStream(bytes, bytes.Length - bytesLeft, bytesLeft), CompressionMode.Decompress))
-                        using (var decompStream = new MemoryStream())
                         {
-#if !NET35
-                            inflaterStream.CopyTo(decompStream);
-#else
-                            byte[] buffer = new byte[256];
-                            int count;
-                            int totalBytes = 0;
-                            while ((count = inflaterStream.Read(buffer, 0, 256)) > 0)
+                            Exception ex = null;
+                            try
                             {
-                                decompStream.Write(buffer, 0, count);
-                                totalBytes += count;
+                                textBytes = ReadStreamToBytes(inflaterStream);
                             }
-#endif
-                            textBytes = decompStream.ToArray();
+                            catch (Exception e)
+                            {
+                                ex = e;
+                            }
+
+                            // Work-around no yield-return from catch blocks
+                            if (ex != null)
+                            {
+                                var directory = new PngDirectory(PngChunkType.iTXt);
+                                directory.AddError($"Exception decompressing {nameof(PngChunkType.iTXt)} chunk with keyword \"{keyword}\": {ex.Message}");
+                                yield return directory;
+                            }
                         }
                     }
                     else
@@ -289,7 +331,7 @@ namespace MetadataExtractor.Formats.Png
                     }
                     else
                     {
-                        var textPairs = new List<KeyValuePair> { new KeyValuePair(keyword, new StringValue(textBytes, defaultEncoding)) };
+                        var textPairs = new List<KeyValuePair> { new KeyValuePair(keyword, new StringValue(textBytes, _latin1Encoding)) };
                         var directory = new PngDirectory(PngChunkType.iTXt);
                         directory.Set(PngDirectory.TagTextualData, textPairs);
                         yield return directory;
@@ -306,15 +348,13 @@ namespace MetadataExtractor.Formats.Png
                 int minute = reader.GetByte();
                 int second = reader.GetByte();
                 var directory = new PngDirectory(PngChunkType.tIME);
-                try
+                if (DateUtil.IsValidDate(year, month, day) && DateUtil.IsValidTime(hour, minute, second))
                 {
                     var time = new DateTime(year, month, day, hour, minute, second, DateTimeKind.Unspecified);
                     directory.Set(PngDirectory.TagLastModificationTime, time);
                 }
-                catch (ArgumentOutOfRangeException e)
-                {
-                    directory.AddError("Error constructing DateTime: " + e.Message);
-                }
+                else
+                    directory.AddError($"PNG tIME data describes an invalid date/time: year={year} month={month} day={day} hour={hour} minute={minute} second={second}");
                 yield return directory;
             }
             else if (chunkType == PngChunkType.pHYs)
@@ -335,6 +375,22 @@ namespace MetadataExtractor.Formats.Png
                 directory.Set(PngDirectory.TagSignificantBits, bytes);
                 yield return directory;
             }
+        }
+
+        private static byte[] ReadStreamToBytes(Stream stream)
+        {
+            var ms = new MemoryStream();
+
+#if !NET35
+            stream.CopyTo(ms);
+#else
+            var buffer = new byte[1024];
+            int count;
+            while ((count = stream.Read(buffer, 0, 256)) > 0)
+                ms.Write(buffer, 0, count);
+#endif
+
+            return ms.ToArray();
         }
     }
 }

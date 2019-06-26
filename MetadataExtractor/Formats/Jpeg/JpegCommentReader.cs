@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +23,14 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
+
+#if NET35
+using DirectoryList = System.Collections.Generic.IList<MetadataExtractor.Directory>;
+#else
+using DirectoryList = System.Collections.Generic.IReadOnlyList<MetadataExtractor.Directory>;
+#endif
 
 namespace MetadataExtractor.Formats.Jpeg
 {
@@ -34,27 +39,14 @@ namespace MetadataExtractor.Formats.Jpeg
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class JpegCommentReader : IJpegSegmentMetadataReader
     {
-        public IEnumerable<JpegSegmentType> GetSegmentTypes()
-        {
-            yield return JpegSegmentType.Com;
-        }
+        ICollection<JpegSegmentType> IJpegSegmentMetadataReader.SegmentTypes => new [] { JpegSegmentType.Com };
 
         /// <summary>Reads JPEG comments, returning each in a <see cref="JpegCommentDirectory"/>.</summary>
-        public
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadJpegSegments(IEnumerable<byte[]> segments, JpegSegmentType segmentType)
+        public DirectoryList ReadJpegSegments(IEnumerable<JpegSegment> segments)
         {
-            Debug.Assert(segmentType == JpegSegmentType.Com);
-
-            // TODO store bytes in the directory to allow different encodings when decoding
-
             // The entire contents of the segment are the comment
-            return segments.Select(segment => new JpegCommentDirectory(Encoding.UTF8.GetString(segment, 0, segment.Length)))
-#if NET35 || PORTABLE
+            return segments.Select(segment => new JpegCommentDirectory(new StringValue(segment.Bytes, Encoding.UTF8)))
+#if NET35
                 .Cast<Directory>()
 #endif
                 .ToList();

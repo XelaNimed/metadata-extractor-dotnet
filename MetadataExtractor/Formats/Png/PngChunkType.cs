@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -182,7 +182,7 @@ namespace MetadataExtractor.Formats.Png
 
         #region Equality and Hashing
 
-        private bool Equals(PngChunkType other) => _bytes.SequenceEqual(other._bytes);
+        private bool Equals([NotNull] PngChunkType other) => _bytes.SequenceEqual(other._bytes);
 
         public override bool Equals(object obj)
         {
@@ -190,10 +190,10 @@ namespace MetadataExtractor.Formats.Png
                 return false;
             if (ReferenceEquals(this, obj))
                 return true;
-            return obj is PngChunkType && Equals((PngChunkType)obj);
+            return obj is PngChunkType t && Equals(t);
         }
 
-        public override int GetHashCode() => unchecked(_bytes[0] << 24 | _bytes[1] << 16 << _bytes[2] << 8 | _bytes[3]);
+        public override int GetHashCode() => _bytes[0] << 24 | _bytes[1] << 16 << _bytes[2] << 8 | _bytes[3];
 
         public static bool operator ==(PngChunkType left, PngChunkType right) => Equals(left, right);
         public static bool operator !=(PngChunkType left, PngChunkType right) => !Equals(left, right);

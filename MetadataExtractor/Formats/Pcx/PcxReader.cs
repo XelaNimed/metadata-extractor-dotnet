@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,25 +39,26 @@ namespace MetadataExtractor.Formats.Pcx
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class PcxReader
     {
+        [NotNull]
         public PcxDirectory Extract([NotNull] SequentialReader reader)
         {
-            reader.IsMotorolaByteOrder = false;
+            reader = reader.WithByteOrder(isMotorolaByteOrder: false);
 
             var directory = new PcxDirectory();
 
             try
             {
                 var identifier = reader.GetSByte();
+
                 if (identifier != 0x0A)
-                {
                     throw new ImageProcessingException("Invalid PCX identifier byte");
-                }
+
                 directory.Set(PcxDirectory.TagVersion, reader.GetSByte());
+
                 var encoding = reader.GetSByte();
                 if (encoding != 0x01)
-                {
                     throw new ImageProcessingException("Invalid PCX encoding byte");
-                }
+
                 directory.Set(PcxDirectory.TagBitsPerPixel, reader.GetByte());
                 directory.Set(PcxDirectory.TagXMin, reader.GetUInt16());
                 directory.Set(PcxDirectory.TagYMin, reader.GetUInt16());
@@ -69,21 +70,18 @@ namespace MetadataExtractor.Formats.Pcx
                 reader.Skip(1);
                 directory.Set(PcxDirectory.TagColorPlanes, reader.GetByte());
                 directory.Set(PcxDirectory.TagBytesPerLine, reader.GetUInt16());
+
                 var paletteType = reader.GetUInt16();
                 if (paletteType != 0)
-                {
                     directory.Set(PcxDirectory.TagPaletteType, paletteType);
-                }
+
                 var hScrSize = reader.GetUInt16();
                 if (hScrSize != 0)
-                {
                     directory.Set(PcxDirectory.TagHScrSize, hScrSize);
-                }
+
                 var vScrSize = reader.GetUInt16();
                 if (vScrSize != 0)
-                {
                     directory.Set(PcxDirectory.TagVScrSize, vScrSize);
-                }
             }
             catch (Exception ex)
             {

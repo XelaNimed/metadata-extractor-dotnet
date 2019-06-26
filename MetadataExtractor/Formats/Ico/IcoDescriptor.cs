@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -76,8 +76,7 @@ namespace MetadataExtractor.Formats.Ico
         [CanBeNull]
         public string GetImageWidthDescription()
         {
-            int width;
-            if (!Directory.TryGetInt32(IcoDirectory.TagImageWidth, out width))
+            if (!Directory.TryGetInt32(IcoDirectory.TagImageWidth, out int width))
                 return null;
             return (width == 0 ? 256 : width) + " pixels";
         }
@@ -85,8 +84,7 @@ namespace MetadataExtractor.Formats.Ico
         [CanBeNull]
         public string GetImageHeightDescription()
         {
-            int height;
-            if (!Directory.TryGetInt32(IcoDirectory.TagImageHeight, out height))
+            if (!Directory.TryGetInt32(IcoDirectory.TagImageHeight, out int height))
                 return null;
             return (height == 0 ? 256 : height) + " pixels";
         }
@@ -94,8 +92,7 @@ namespace MetadataExtractor.Formats.Ico
         [CanBeNull]
         public string GetColourPaletteSizeDescription()
         {
-            int size;
-            if (!Directory.TryGetInt32(IcoDirectory.TagColourPaletteSize, out size))
+            if (!Directory.TryGetInt32(IcoDirectory.TagColourPaletteSize, out int size))
                 return null;
             return size == 0 ? "No palette" : size + " colour" + (size == 1 ? string.Empty : "s");
         }

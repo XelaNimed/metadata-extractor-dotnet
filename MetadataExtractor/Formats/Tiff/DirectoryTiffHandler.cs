@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,8 +22,8 @@
 //
 #endregion
 
-using System;
 using System.Collections.Generic;
+using System.Linq;
 using JetBrains.Annotations;
 using MetadataExtractor.IO;
 
@@ -37,15 +37,14 @@ namespace MetadataExtractor.Formats.Tiff
     {
         private readonly Stack<Directory> _directoryStack = new Stack<Directory>();
 
-        protected Directory CurrentDirectory;
+        protected List<Directory> Directories { get; }
 
-        protected readonly List<Directory> Directories;
+        [CanBeNull]
+        protected Directory CurrentDirectory { get; private set; }
 
-        protected DirectoryTiffHandler([NotNull] List<Directory> directories, [NotNull] Type initialDirectoryClass)
+        protected DirectoryTiffHandler([NotNull] List<Directory> directories)
         {
             Directories = directories;
-            CurrentDirectory = (Directory)Activator.CreateInstance(initialDirectoryClass);
-            Directories.Add(CurrentDirectory);
         }
 
         public void EndingIfd()
@@ -53,20 +52,36 @@ namespace MetadataExtractor.Formats.Tiff
             CurrentDirectory = _directoryStack.Count == 0 ? null : _directoryStack.Pop();
         }
 
-        protected void PushDirectory([NotNull] Type directoryClass)
+        protected void PushDirectory([NotNull] Directory directory)
         {
-            _directoryStack.Push(CurrentDirectory);
-            var newDirectory = (Directory)Activator.CreateInstance(directoryClass);
-            newDirectory.Parent = CurrentDirectory;
-            Directories.Add(newDirectory);
-            CurrentDirectory = newDirectory;
+            // If this is the first directory, don't add to the stack
+            if (CurrentDirectory != null)
+            {
+                _directoryStack.Push(CurrentDirectory);
+                directory.Parent = CurrentDirectory;
+            }
+            CurrentDirectory = directory;
+            Directories.Add(CurrentDirectory);
         }
 
-        public void Warn(string message)  => CurrentDirectory.AddError(message);
-        public void Error(string message) => CurrentDirectory.AddError(message);
+        public void Warn(string message)  => GetCurrentOrErrorDirectory().AddError(message);
+        public void Error(string message) => GetCurrentOrErrorDirectory().AddError(message);
+
+        [NotNull]
+        private Directory GetCurrentOrErrorDirectory()
+        {
+            if (CurrentDirectory != null)
+                return CurrentDirectory;
+            var error = Directories.OfType<ErrorDirectory>().FirstOrDefault();
+            if (error != null)
+                return error;
+            error = new ErrorDirectory();
+            PushDirectory(error);
+            return error;
+        }
 
         public void SetByteArray(int tagId, byte[] bytes)         => CurrentDirectory.Set(tagId, bytes);
-        public void SetString(int tagId, StringValue strval)      => CurrentDirectory.Set(tagId, strval);
+        public void SetString(int tagId, StringValue stringValue) => CurrentDirectory.Set(tagId, stringValue);
         public void SetRational(int tagId, Rational rational)     => CurrentDirectory.Set(tagId, rational);
         public void SetRationalArray(int tagId, Rational[] array) => CurrentDirectory.Set(tagId, array);
         public void SetFloat(int tagId, float float32)            => CurrentDirectory.Set(tagId, float32);
@@ -86,9 +101,7 @@ namespace MetadataExtractor.Formats.Tiff
         public void SetInt32U(int tagId, uint int32U)             => CurrentDirectory.Set(tagId, int32U);
         public void SetInt32UArray(int tagId, uint[] array)       => CurrentDirectory.Set(tagId, array);
 
-        public abstract void Completed(IndexedReader reader, int tiffHeaderOffset);
-
-        public abstract bool CustomProcessTag(int tagOffset, ICollection<int> processedIfdOffsets, int tiffHeaderOffset, IndexedReader reader, int tagId, int byteCount);
+        public abstract bool CustomProcessTag(int tagOffset, ICollection<int> processedIfdOffsets, IndexedReader reader, int tagId, int byteCount);
 
         public abstract bool TryCustomProcessFormat(int tagId, TiffDataFormatCode formatCode, uint componentCount, out long byteCount);
 

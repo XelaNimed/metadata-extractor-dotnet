@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@
 //
 #endregion
 
-using System;
 using JetBrains.Annotations;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -97,8 +96,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetRawDevNoiseReductionDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusRawDevelopment2MakernoteDirectory.TagRawDevNoiseReduction, out value))
+            if (!Directory.TryGetInt32(OlympusRawDevelopment2MakernoteDirectory.TagRawDevNoiseReduction, out int value))
                 return null;
 
             if (value == 0)
@@ -124,8 +122,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetRawDevPictureModeDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusRawDevelopment2MakernoteDirectory.TagRawDevPictureMode, out value))
+            if (!Directory.TryGetInt32(OlympusRawDevelopment2MakernoteDirectory.TagRawDevPictureMode, out int value))
                 return null;
 
             switch (value)

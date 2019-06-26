@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,8 @@
 //
 #endregion
 
-using System.IO;
+using System.Collections.Generic;
+using System.Linq;
 using JetBrains.Annotations;
 using MetadataExtractor.Formats.Gif;
 using MetadataExtractor.IO;
@@ -30,21 +31,24 @@ using Xunit;
 
 namespace MetadataExtractor.Tests.Formats.Gif
 {
+    /// <summary>Unit tests for <see cref="GifReader"/>.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class GifReaderTest
     {
         [NotNull]
-        public static GifHeaderDirectory ProcessBytes([NotNull] string file)
+        private static IEnumerable<Directory> ProcessBytes([NotNull] string file)
         {
-            using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var stream = TestDataUtil.OpenRead(file))
                 return new GifReader().Extract(new SequentialStreamReader(stream));
         }
 
         [Fact]
-        public void TestMsPaintGif()
+        public void MsPaintGif()
         {
-            var directory = ProcessBytes("Tests/Data/mspaint-10x10.gif");
+            var directory = ProcessBytes("Data/mspaint-10x10.gif").OfType<GifHeaderDirectory>().Single();
+
             Assert.False(directory.HasError);
+
             Assert.Equal("89a", directory.GetString(GifHeaderDirectory.TagGifFormatVersion));
             Assert.Equal(10, directory.GetInt32(GifHeaderDirectory.TagImageWidth));
             Assert.Equal(10, directory.GetInt32(GifHeaderDirectory.TagImageHeight));
@@ -56,10 +60,12 @@ namespace MetadataExtractor.Tests.Formats.Gif
         }
 
         [Fact]
-        public void TestPhotoshopGif()
+        public void PhotoshopGif()
         {
-            var directory = ProcessBytes("Tests/Data/photoshop-8x12-32colors-alpha.gif");
+            var directory = ProcessBytes("Data/photoshop-8x12-32colors-alpha.gif").OfType<GifHeaderDirectory>().Single();
+
             Assert.False(directory.HasError);
+
             Assert.Equal("89a", directory.GetString(GifHeaderDirectory.TagGifFormatVersion));
             Assert.Equal(8, directory.GetInt32(GifHeaderDirectory.TagImageWidth));
             Assert.Equal(12, directory.GetInt32(GifHeaderDirectory.TagImageHeight));

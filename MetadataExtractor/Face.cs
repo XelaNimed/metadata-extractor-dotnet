@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,7 +65,7 @@ namespace MetadataExtractor
 
         #region Equality and hashing
 
-        private bool Equals(Face other)
+        private bool Equals([NotNull] Face other)
         {
             return X == other.X && Y == other.Y && Width == other.Width && Height == other.Height && string.Equals(Name, other.Name) && Equals(Age, other.Age);
         }
@@ -76,7 +76,7 @@ namespace MetadataExtractor
                 return false;
             if (ReferenceEquals(this, obj))
                 return true;
-            return obj is Face && Equals((Face)obj);
+            return obj is Face face && Equals(face);
         }
 
         public override int GetHashCode()

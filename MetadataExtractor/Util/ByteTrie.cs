@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,13 +23,16 @@
 #endregion
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 
 namespace MetadataExtractor.Util
 {
     /// <summary>Stores values using a prefix tree (aka 'trie', i.e. reTRIEval data structure).</summary>
-    public sealed class ByteTrie<T>
+    public sealed class ByteTrie<T> : IEnumerable<T>
     {
         /// <summary>A node in the trie.</summary>
         /// <remarks>Has children and may have an associated value.</remarks>
@@ -42,8 +45,7 @@ namespace MetadataExtractor.Util
 
             public void SetValue(T value)
             {
-                if (HasValue)
-                    throw new InvalidOperationException("Value already set for this trie node");
+                Debug.Assert(!HasValue, "Value already set for this trie node");
                 Value = value;
                 HasValue = true;
             }
@@ -54,13 +56,18 @@ namespace MetadataExtractor.Util
         /// <summary>Gets the maximum depth stored in this trie.</summary>
         public int MaxDepth { get; private set; }
 
+        public ByteTrie() {}
+
+        public ByteTrie(T defaultValue) => SetDefaultValue(defaultValue);
+
         /// <summary>Return the most specific value stored for this byte sequence.</summary>
         /// <remarks>
         /// If not found, returns <c>null</c> or a default values as specified by
         /// calling <see cref="SetDefaultValue"/>.
         /// </remarks>
         [CanBeNull]
-        public T Find(byte[] bytes)
+        [SuppressMessage("ReSharper", "ParameterTypeCanBeEnumerable.Global")]
+        public T Find([NotNull] byte[] bytes)
         {
             var node = _root;
             var value = node.Value;
@@ -75,7 +82,7 @@ namespace MetadataExtractor.Util
         }
 
         /// <summary>Store the given value at the specified path.</summary>
-        public void AddPath(T value, params byte[][] parts)
+        public void Add(T value, [NotNull] params byte[][] parts)
         {
             var depth = 0;
             var node = _root;
@@ -83,8 +90,7 @@ namespace MetadataExtractor.Util
             {
                 foreach (var b in part)
                 {
-                    ByteTrieNode child;
-                    if (!node.Children.TryGetValue(b, out child))
+                    if (!node.Children.TryGetValue(b, out ByteTrieNode child))
                     {
                         child = new ByteTrieNode();
                         node.Children[b] = child;
@@ -101,5 +107,8 @@ namespace MetadataExtractor.Util
         /// Sets the default value to use in <see cref="ByteTrie{T}.Find(byte[])"/> when no path matches.
         /// </summary>
         public void SetDefaultValue(T defaultValue) => _root.SetValue(defaultValue);
+
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => throw new NotImplementedException();
+        IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
     }
 }

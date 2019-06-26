@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,10 +58,8 @@ namespace MetadataExtractor.Formats.Bmp
             // 5 = PNG
             // 6 = Bit field
 
-            int value;
-            int headerSize;
-            if (!Directory.TryGetInt32(BmpHeaderDirectory.TagCompression, out value) ||
-                !Directory.TryGetInt32(BmpHeaderDirectory.TagHeaderSize, out headerSize))
+            if (!Directory.TryGetInt32(BmpHeaderDirectory.TagCompression, out int value) ||
+                !Directory.TryGetInt32(BmpHeaderDirectory.TagHeaderSize, out int headerSize))
                 return null;
 
             switch (value)

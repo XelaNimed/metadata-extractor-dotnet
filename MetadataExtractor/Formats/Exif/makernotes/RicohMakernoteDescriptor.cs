@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,20 +49,12 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             {
                 default:
                 {
-//                  case RicohMakernoteDirectory.TagPrintImageMatchingInfo:
-//                      return GetPrintImageMatchingInfoDescription();
 //                  case RicohMakernoteDirectory.TagProprietaryThumbnail:
 //                      return GetProprietaryThumbnailDataDescription();
                     return base.GetDescription(tagType);
                 }
             }
         }
-
-//        [CanBeNull]
-//        public string GetPrintImageMatchingInfoDescription()
-//        {
-//            return GetByteLengthDescription(RicohMakernoteDirectory.TagPrintImageMatchingInfo);
-//        }
 //
 //        [CanBeNull]
 //        public string GetProprietaryThumbnailDataDescription()

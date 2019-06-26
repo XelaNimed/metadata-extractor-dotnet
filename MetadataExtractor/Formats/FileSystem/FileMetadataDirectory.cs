@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,16 +42,10 @@ namespace MetadataExtractor.Formats.FileSystem
             { TagFileModifiedDate, "File Modified Date" }
         };
 
-        public FileMetadataDirectory()
-        {
-            SetDescriptor(new FileMetadataDescriptor(this));
-        }
+        public FileMetadataDirectory() => SetDescriptor(new FileMetadataDescriptor(this));
 
         public override string Name => "File";
 
-        protected override bool TryGetTagName(int tagType, out string tagName)
-        {
-            return _tagNameMap.TryGetValue(tagType, out tagName);
-        }
+        protected override bool TryGetTagName(int tagType, out string tagName) => _tagNameMap.TryGetValue(tagType, out tagName);
     }
 }

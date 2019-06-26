@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,8 +66,7 @@ namespace MetadataExtractor
                 return null;
 
             // special presentation for long arrays
-            var array = obj as Array;
-            if (array != null && array.Length > 16)
+            if (obj is Array array && array.Length > 16)
                 return $"[{array.Length} {(array.Length == 1 ? "value" : "values")}]";
 
             // no special handling required, so use default conversion to a string
@@ -88,6 +87,7 @@ namespace MetadataExtractor
         /// <param name="components">the four version values</param>
         /// <param name="majorDigits">the number of components to be</param>
         /// <returns>the version as a string of form "2.10" or null if the argument cannot be converted</returns>
+        [Pure]
         [CanBeNull]
         public static string ConvertBytesToVersionString([CanBeNull] int[] components, int majorDigits)
         {
@@ -109,6 +109,7 @@ namespace MetadataExtractor
             return version.ToString();
         }
 
+        [Pure]
         [CanBeNull]
         protected string GetVersionBytesDescription(int tagType, int majorDigits)
         {
@@ -116,17 +117,18 @@ namespace MetadataExtractor
             return values == null ? null : ConvertBytesToVersionString(values, majorDigits);
         }
 
+        [Pure]
         [CanBeNull]
         protected string GetIndexedDescription(int tagType, [NotNull] params string[] descriptions)
         {
             return GetIndexedDescription(tagType, 0, descriptions);
         }
 
+        [Pure]
         [CanBeNull]
         protected string GetIndexedDescription(int tagType, int baseIndex, [NotNull] params string[] descriptions)
         {
-            int index;
-            if (!Directory.TryGetInt32(tagType, out index))
+            if (!Directory.TryGetUInt32(tagType, out uint index))
                 return null;
 
             var arrayIndex = index - baseIndex;
@@ -141,6 +143,7 @@ namespace MetadataExtractor
             return "Unknown (" + index + ")";
         }
 
+        [Pure]
         [CanBeNull]
         protected string GetByteLengthDescription(int tagType)
         {
@@ -150,33 +153,34 @@ namespace MetadataExtractor
             return $"({bytes.Length} byte{(bytes.Length == 1 ? string.Empty : "s")})";
         }
 
+        [Pure]
         [CanBeNull]
         protected string GetSimpleRational(int tagType)
         {
-            Rational value;
-            if (!Directory.TryGetRational(tagType, out value))
+            if (!Directory.TryGetRational(tagType, out Rational value))
                 return null;
             return value.ToSimpleString();
         }
 
+        [Pure]
         [CanBeNull]
         protected string GetDecimalRational(int tagType, int decimalPlaces)
         {
-            Rational value;
-            if (!Directory.TryGetRational(tagType, out value))
+            if (!Directory.TryGetRational(tagType, out Rational value))
                 return null;
             return string.Format("{0:F" + decimalPlaces + "}", value.ToDouble());
         }
 
+        [Pure]
         [CanBeNull]
         protected string GetFormattedInt(int tagType, [NotNull] string format)
         {
-            int value;
-            if (!Directory.TryGetInt32(tagType, out value))
+            if (!Directory.TryGetInt32(tagType, out int value))
                 return null;
             return string.Format(format, value);
         }
 
+        [Pure]
         [CanBeNull]
         protected string GetFormattedString(int tagType, [NotNull] string format)
         {
@@ -186,22 +190,22 @@ namespace MetadataExtractor
             return string.Format(format, value);
         }
 
+        [Pure]
         [CanBeNull]
         protected string GetEpochTimeDescription(int tagType)
         {
             // TODO have observed a byte[8] here which is likely some kind of date (ticks as long?)
-            long value;
-            return Directory.TryGetInt64(tagType, out value)
+            return Directory.TryGetInt64(tagType, out long value)
                 ? DateUtil.FromUnixTime(value).ToString("ddd MMM dd HH:mm:ss zzz yyyy")
                 : null;
         }
 
         /// <remarks>LSB first. Labels may be null, a String, or a String[2] with (low label,high label) values.</remarks>
+        [Pure]
         [CanBeNull]
         protected string GetBitFlagDescription(int tagType, [NotNull] params object[] labels)
         {
-            int value;
-            if (!Directory.TryGetInt32(tagType, out value))
+            if (!Directory.TryGetInt32(tagType, out int value))
                 return null;
             var parts = new List<string>();
             var bitIndex = 0;
@@ -211,8 +215,7 @@ namespace MetadataExtractor
                 if (labelObj != null)
                 {
                     var isBitSet = (value & 1) == 1;
-                    var obj = labelObj as string[];
-                    if (obj != null)
+                    if (labelObj is string[] obj)
                     {
                         var labelPair = obj;
                         Debug.Assert(labelPair.Length == 2);
@@ -233,8 +236,9 @@ namespace MetadataExtractor
 #endif
         }
 
+        [Pure]
         [CanBeNull]
-        protected string Get7BitStringFromBytes(int tagType)
+        protected string GetStringFrom7BitBytes(int tagType)
         {
             var bytes = Directory.GetByteArray(tagType);
             if (bytes == null)
@@ -252,8 +256,9 @@ namespace MetadataExtractor
             return Encoding.UTF8.GetString(bytes, 0, length);
         }
 
+        [Pure]
         [CanBeNull]
-        protected string GetAsciiStringFromBytes(int tag)
+        protected string GetStringFromUtf8Bytes(int tag)
         {
             var values = Directory.GetByteArray(tag);
             if (values == null)
@@ -261,12 +266,7 @@ namespace MetadataExtractor
 
             try
             {
-#if PORTABLE
-                var encoding = Encoding.UTF8;
-#else
-                var encoding = Encoding.ASCII;
-#endif
-                return encoding
+                return Encoding.UTF8
                     .GetString(values, 0, values.Length)
                     .Trim('\0', ' ', '\r', '\n', '\t');
             }
@@ -276,24 +276,28 @@ namespace MetadataExtractor
             }
         }
 
+        [Pure]
         [CanBeNull]
         protected string GetRationalOrDoubleString(int tagType)
         {
-            Rational rational;
-            if (Directory.TryGetRational(tagType, out rational))
+            if (Directory.TryGetRational(tagType, out Rational rational))
                 return rational.ToSimpleString();
 
-            double d;
-            if (Directory.TryGetDouble(tagType, out d))
+            if (Directory.TryGetDouble(tagType, out double d))
                 return d.ToString("0.###");
 
             return null;
         }
 
-        protected static string GetFStopDescription(double fStop) => $"f/{fStop:0.0}";
+        [Pure]
+        [NotNull]
+        protected static string GetFStopDescription(double fStop) => $"f/{Math.Round(fStop, 1, MidpointRounding.AwayFromZero):0.0}";
 
+        [Pure]
+        [NotNull]
         protected static string GetFocalLengthDescription(double mm) => $"{mm:0.#} mm";
 
+        [Pure]
         [CanBeNull]
         protected string GetLensSpecificationDescription(int tagId)
         {
@@ -317,13 +321,13 @@ namespace MetadataExtractor
                     sb.Append(GetFStopDescription(values[2].ToDouble()));
                 else
                     sb.Append("f/")
-#if !PORTABLE
+#if !NETSTANDARD1_3
                       .Append(Math.Round(values[2].ToDouble(), 1, MidpointRounding.AwayFromZero).ToString("0.0"))
 #else
                       .Append(Math.Round(values[2].ToDouble(), 1).ToString("0.0"))
 #endif
                       .Append("-")
-#if !PORTABLE
+#if !NETSTANDARD1_3
                       .Append(Math.Round(values[3].ToDouble(), 1, MidpointRounding.AwayFromZero).ToString("0.0"));
 #else
                       .Append(Math.Round(values[3].ToDouble(), 1).ToString("0.0"));
@@ -331,6 +335,103 @@ namespace MetadataExtractor
             }
 
             return sb.ToString();
+        }
+
+        [CanBeNull]
+        protected string GetOrientationDescription(int tag)
+        {
+            return GetIndexedDescription(tag, 1,
+                "Top, left side (Horizontal / normal)",
+                "Top, right side (Mirror horizontal)",
+                "Bottom, right side (Rotate 180)", "Bottom, left side (Mirror vertical)",
+                "Left side, top (Mirror horizontal and rotate 270 CW)",
+                "Right side, top (Rotate 90 CW)",
+                "Right side, bottom (Mirror horizontal and rotate 90 CW)",
+                "Left side, bottom (Rotate 270 CW)");
+        }
+
+        [CanBeNull]
+        protected string GetShutterSpeedDescription(int tagId)
+        {
+            // I believe this method to now be stable, but am leaving some alternative snippets of
+            // code in here, to assist anyone who's looking into this (given that I don't have a public CVS).
+            //        float apexValue = _directory.getFloat(ExifSubIFDDirectory.TAG_SHUTTER_SPEED);
+            //        int apexPower = (int)Math.pow(2.0, apexValue);
+            //        return "1/" + apexPower + " sec";
+            // TODO test this method
+            // thanks to Mark Edwards for spotting and patching a bug in the calculation of this
+            // description (spotted bug using a Canon EOS 300D)
+            // thanks also to Gli Blr for spotting this bug
+            if (!Directory.TryGetSingle(tagId, out float apexValue))
+                return null;
+
+            if (apexValue <= 1)
+            {
+                var apexPower = (float)(1 / Math.Exp(apexValue * Math.Log(2)));
+                var apexPower10 = (long)Math.Round(apexPower * 10.0);
+                var fApexPower = apexPower10 / 10.0f;
+                return fApexPower + " sec";
+            }
+            else
+            {
+                var apexPower = (int)Math.Exp(apexValue * Math.Log(2));
+                return "1/" + apexPower + " sec";
+            }
+        }
+
+        // EXIF LightSource
+        [CanBeNull]
+        protected string GetLightSourceDescription(ushort wbtype)
+        {
+            switch (wbtype)
+            {
+                case 0:
+                    return "Unknown";
+                case 1:
+                    return "Daylight";
+                case 2:
+                    return "Fluorescent";
+                case 3:
+                    return "Tungsten (Incandescent)";
+                case 4:
+                    return "Flash";
+                case 9:
+                    return "Fine Weather";
+                case 10:
+                    return "Cloudy";
+                case 11:
+                    return "Shade";
+                case 12:
+                    return "Daylight Fluorescent";    // (D 5700 - 7100K)
+                case 13:
+                    return "Day White Fluorescent";   // (N 4600 - 5500K)
+                case 14:
+                    return "Cool White Fluorescent";  // (W 3800 - 4500K)
+                case 15:
+                    return "White Fluorescent";       // (WW 3250 - 3800K)
+                case 16:
+                    return "Warm White Fluorescent";  // (L 2600 - 3250K)
+                case 17:
+                    return "Standard Light A";
+                case 18:
+                    return "Standard Light B";
+                case 19:
+                    return "Standard Light C";
+                case 20:
+                    return "D55";
+                case 21:
+                    return "D65";
+                case 22:
+                    return "D75";
+                case 23:
+                    return "D50";
+                case 24:
+                    return "ISO Studio Tungsten";
+                case 255:
+                    return "Other";
+            }
+
+            return GetDescription(wbtype);
         }
     }
 }

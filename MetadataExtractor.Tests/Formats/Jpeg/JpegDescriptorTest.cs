@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,7 @@ using Xunit;
 
 namespace MetadataExtractor.Tests.Formats.Jpeg
 {
+    /// <summary>Unit tests for <see cref="JpegDescriptor"/>.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class JpegDescriptorTest
     {
@@ -39,46 +40,44 @@ namespace MetadataExtractor.Tests.Formats.Jpeg
             _descriptor = new JpegDescriptor(_directory);
         }
 
-
         [Fact]
-        public void TestGetComponentDataDescription_InvalidComponentNumber()
+        public void GetComponentDataDescription_InvalidComponentNumber()
         {
             Assert.Null(_descriptor.GetComponentDataDescription(1));
         }
 
-
         [Fact]
-        public void TestGetImageWidthDescription()
+        public void GetImageWidthDescription()
         {
             _directory.Set(JpegDirectory.TagImageWidth, 123);
+
             Assert.Equal("123 pixels", _descriptor.GetImageWidthDescription());
             Assert.Equal("123 pixels", _directory.GetDescription(JpegDirectory.TagImageWidth));
         }
 
-
         [Fact]
-        public void TestGetImageHeightDescription()
+        public void GetImageHeightDescription()
         {
             _directory.Set(JpegDirectory.TagImageHeight, 123);
+
             Assert.Equal("123 pixels", _descriptor.GetImageHeightDescription());
             Assert.Equal("123 pixels", _directory.GetDescription(JpegDirectory.TagImageHeight));
         }
 
-
         [Fact]
-        public void TestGetDataPrecisionDescription()
+        public void GetDataPrecisionDescription()
         {
             _directory.Set(JpegDirectory.TagDataPrecision, 8);
+
             Assert.Equal("8 bits", _descriptor.GetDataPrecisionDescription());
             Assert.Equal("8 bits", _directory.GetDescription(JpegDirectory.TagDataPrecision));
         }
 
-        /// <exception cref="MetadataException"/>
         [Fact]
-        public void TestGetComponentDescription()
+        public void GetComponentDescription()
         {
-            var component1 = new JpegComponent(1, 0x22, 0);
-            _directory.Set(JpegDirectory.TagComponentData1, component1);
+            _directory.Set(JpegDirectory.TagComponentData1, new JpegComponent(1, 0x22, 0));
+
             Assert.Equal("Y component: Quantization table 0, Sampling factors 2 horiz/2 vert", _directory.GetDescription(JpegDirectory.TagComponentData1));
             Assert.Equal("Y component: Quantization table 0, Sampling factors 2 horiz/2 vert", _descriptor.GetComponentDataDescription(0));
         }

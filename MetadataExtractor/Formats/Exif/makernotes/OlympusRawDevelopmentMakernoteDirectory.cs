@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -75,12 +75,6 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         }
 
         public override string Name => "Olympus Raw Development";
-
-        public override void Set(int tagType, object value)
-        {
-            var bytes = value as byte[];
-            base.Set(tagType, value);
-        }
 
         protected override bool TryGetTagName(int tagType, out string tagName)
         {

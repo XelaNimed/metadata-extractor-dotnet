@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,7 @@
 //
 #endregion
 
-#if !PORTABLE
+#if !NETSTANDARD1_3
 using System;
 #endif
 using System.Linq;
@@ -31,7 +31,7 @@ using JetBrains.Annotations;
 namespace MetadataExtractor.Formats.Png
 {
     /// <author>Drew Noakes https://drewnoakes.com</author>
-#if !PORTABLE
+#if !NETSTANDARD1_3
     [Serializable]
 #endif
     public sealed class PngColorType
@@ -52,11 +52,12 @@ namespace MetadataExtractor.Formats.Png
         /// <summary>Each pixel is an R,G,B triple followed by an alpha sample.</summary>
         public static readonly PngColorType TrueColorWithAlpha = new PngColorType(6, "True Color with Alpha", 8, 16);
 
-        [CanBeNull]
+        [NotNull]
         public static PngColorType FromNumericValue(int numericValue)
         {
             var colorTypes = new[] { Greyscale, TrueColor, IndexedColor, GreyscaleWithAlpha, TrueColorWithAlpha };
-            return colorTypes.FirstOrDefault(colorType => colorType.NumericValue == numericValue);
+            return colorTypes.FirstOrDefault(colorType => colorType.NumericValue == numericValue)
+                ?? new PngColorType(numericValue, $"Unknown ({numericValue})");
         }
 
         public int NumericValue { get; }

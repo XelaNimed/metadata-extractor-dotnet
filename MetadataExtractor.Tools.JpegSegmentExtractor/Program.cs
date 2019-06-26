@@ -1,6 +1,6 @@
 ﻿#region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,10 +24,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using MetadataExtractor.Formats.Jpeg;
+using MetadataExtractor.IO;
 
 namespace MetadataExtractor.Tools.JpegSegmentExtractor
 {
@@ -76,38 +77,47 @@ namespace MetadataExtractor.Tools.JpegSegmentExtractor
                     segmentTypes.Add(segmentType);
             }
             Console.Out.WriteLine("Reading: {0}", filePath);
-            var segmentData = JpegSegmentReader.ReadSegments(filePath, segmentTypes);
-            SaveSegmentFiles(filePath, segmentData);
+            using (var stream = File.OpenRead(filePath))
+            {
+                var segmentData = JpegSegmentReader.ReadSegments(new SequentialStreamReader(stream), segmentTypes);
+                SaveSegmentFiles(filePath, segmentData);
+            }
         }
 
-        private static void SaveSegmentFiles(string jpegFilePath, JpegSegmentData segmentData)
+        private static void SaveSegmentFiles(string jpegFilePath, IEnumerable<JpegSegment> segments)
         {
-            foreach (var segmentType in segmentData.GetSegmentTypes())
-            {
-                IList<byte[]> segments = segmentData.GetSegments(segmentType).ToList();
+            var segmentsByType = segments.ToLookup(s => s.Type);
 
-                if (segments.Count == 0)
+            foreach (var segmentGroup in segmentsByType)
+            {
+                var segmentType = segmentGroup.Key;
+                var segmentsOfType = segmentGroup.ToList();
+
+                if (segmentsOfType.Count == 0)
                     continue;
 
-                var format = segments.Count > 1 ? "{0}.{1}.{2}" : "{0}.{1}";
+                var format = segmentsOfType.Count > 1 ? "{0}.{1}.{2}" : "{0}.{1}";
 
-                for (var i = 0; i < segments.Count; i++)
+                var i = 0;
+                foreach (var segment in segmentsOfType)
                 {
-                    var outputFilePath = string.Format(format, jpegFilePath, segmentType.ToString().ToLower(), i);
+                    var outputFilePath = string.Format(format, jpegFilePath, segmentType.ToString().ToLower(), i++);
 
-                    Console.Out.WriteLine("Writing: " + outputFilePath);
-                    File.WriteAllBytes(outputFilePath, segments[i]);
+                    Console.Out.WriteLine($"Writing: {outputFilePath} (offset {segment.Offset}, length {segment.Bytes.Length})");
+                    File.WriteAllBytes(outputFilePath, segment.Bytes);
                 }
             }
         }
 
         private static void PrintUsage()
         {
-            Console.Out.WriteLine("USAGE:\n");
-            Console.Out.WriteLine("\t{0} <filename> [<segment> ...]\n", Assembly.GetExecutingAssembly().GetName().Name);
+            Console.Out.WriteLine("USAGE:");
+            Console.Out.WriteLine();
+            Console.Out.WriteLine("    {0} <filename> [<segment> ...]", Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName));
+            Console.Out.WriteLine();
             Console.Out.Write("Where <segment> is zero or more of:");
             foreach (var segmentType in JpegSegmentTypeExtensions.CanContainMetadataTypes)
-                Console.Out.Write(" " + segmentType);
+                Console.Out.Write(" " + segmentType.ToString().ToUpper());
             Console.Out.WriteLine();
         }
     }

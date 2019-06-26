@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,12 @@ using System.IO;
 using JetBrains.Annotations;
 using MetadataExtractor.IO;
 
+#if NET35
+using DirectoryList = System.Collections.Generic.IList<MetadataExtractor.Directory>;
+#else
+using DirectoryList = System.Collections.Generic.IReadOnlyList<MetadataExtractor.Directory>;
+#endif
+
 namespace MetadataExtractor.Formats.Ico
 {
     /// <summary>Reads ICO (Windows Icon) file metadata.</summary>
@@ -38,20 +44,15 @@ namespace MetadataExtractor.Formats.Ico
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class IcoReader
     {
-        public
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            Extract([NotNull] SequentialReader reader)
+        [NotNull]
+        public DirectoryList Extract([NotNull] SequentialReader reader)
         {
             var directories = new List<Directory>();
 
-            reader.IsMotorolaByteOrder = false;
+            reader = reader.WithByteOrder(isMotorolaByteOrder: false);
 
-            int type = 0;
-            int imageCount = 0;
+            var type = 0;
+            var imageCount = 0;
 
             // Read header (ICONDIR structure)
 

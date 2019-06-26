@@ -3,6 +3,7 @@ Release/
 bin/
 obj/
 _ReSharper*/
+.idea/
 *.suo
 *.user
 *.ReSharper
@@ -10,3 +11,5 @@ _ReSharper*/
 *.nupkg
 packages/
 .vs
+MetadataExtractor.Benchmarks/BenchmarkDotNet.Artifacts/
+MetadataExtractor.Tools.FileProcessor/Properties/launchSettings.json

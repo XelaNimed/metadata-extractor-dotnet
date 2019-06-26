@@ -1,7 +1,6 @@
 ﻿#region License
-
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +20,6 @@
 //    https://github.com/drewnoakes/metadata-extractor-dotnet
 //    https://drewnoakes.com/code/exif/
 //
-
 #endregion
 
 using MetadataExtractor.Util;
@@ -29,6 +27,7 @@ using Xunit;
 
 namespace MetadataExtractor.Tests.Util
 {
+    /// <summary>Unit tests for <see cref="ByteConvert"/>.</summary>
     public class ByteConvertTest
     {
         [Fact]

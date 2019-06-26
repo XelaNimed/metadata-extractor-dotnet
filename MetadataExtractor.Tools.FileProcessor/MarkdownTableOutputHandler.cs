@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 //
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -51,7 +52,7 @@ namespace MetadataExtractor.Tools.FileProcessor
             [CanBeNull] public string Thumbnail { get; }
             [CanBeNull] public string Makernote { get; }
 
-            internal Row(string filePath, IReadOnlyCollection<Directory> directories, string relativePath)
+            internal Row(string filePath, ICollection<Directory> directories, string relativePath)
             {
                 FilePath = filePath;
                 RelativePath = relativePath;
@@ -76,9 +77,8 @@ namespace MetadataExtractor.Tools.FileProcessor
 
                 if (thumbDir != null)
                 {
-                    int width;
-                    int height;
-                    Thumbnail = thumbDir.TryGetInt32(ExifDirectoryBase.TagImageWidth, out width) && thumbDir.TryGetInt32(ExifDirectoryBase.TagImageHeight, out height)
+                    Thumbnail = thumbDir.TryGetInt32(ExifDirectoryBase.TagImageWidth, out int width) &&
+                                thumbDir.TryGetInt32(ExifDirectoryBase.TagImageHeight, out int height)
                         ? $"Yes ({width} x {height})"
                         : "Yes";
                 }
@@ -97,9 +97,9 @@ namespace MetadataExtractor.Tools.FileProcessor
             }
         }
 
-        public override void OnExtractionSuccess(string filePath, IReadOnlyList<Directory> directories, string relativePath, TextWriter log)
+        public override void OnExtractionSuccess(string filePath, IList<Directory> directories, string relativePath, TextWriter log, long streamPosition)
         {
-            base.OnExtractionSuccess(filePath, directories, relativePath, log);
+            base.OnExtractionSuccess(filePath, directories, relativePath, log, streamPosition);
 
             var extension = Path.GetExtension(filePath);
 
@@ -111,8 +111,7 @@ namespace MetadataExtractor.Tools.FileProcessor
             if (_extensionEquivalence.ContainsKey(extension))
                 extension = _extensionEquivalence[extension];
 
-            List<Row> rows;
-            if (!_rowsByExtension.TryGetValue(extension, out rows))
+            if (!_rowsByExtension.TryGetValue(extension, out List<Row> rows))
             {
                 rows = new List<Row>();
                 _rowsByExtension[extension] = rows;
@@ -157,12 +156,13 @@ namespace MetadataExtractor.Tools.FileProcessor
                 foreach (var row in rows)
                 {
                     var fileName = Path.GetFileName(row.FilePath);
+                    var urlEncodedFileName = Uri.EscapeDataString(fileName).Replace("%20", "+");
 
                     writer.WriteLine(
                         "[{0}](https://raw.githubusercontent.com/drewnoakes/metadata-extractor-images/master/{1}/{2})|{3}|{4}|{5}|{6}|{7}|{8}|[metadata](https://raw.githubusercontent.com/drewnoakes/metadata-extractor-images/master/{9}/metadata/{10}.txt)",
                         fileName,
                         row.RelativePath,
-                        Program.UrlEncode(fileName),
+                        urlEncodedFileName,
                         row.Manufacturer,
                         row.Model,
                         row.DirectoryCount,
@@ -170,7 +170,7 @@ namespace MetadataExtractor.Tools.FileProcessor
                         row.Makernote,
                         row.Thumbnail,
                         row.RelativePath,
-                        Program.UrlEncode(fileName).ToLower());
+                        urlEncodedFileName.ToLower());
                 }
 
                 writer.WriteLine();

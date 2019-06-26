@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -130,8 +130,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetTeleconverterDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagTeleconverter, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagTeleconverter, out int value))
                 return null;
 
             switch (value)
@@ -158,8 +157,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetWhiteBalanceDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagWhiteBalance, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagWhiteBalance, out int value))
                 return null;
 
             switch (value)
@@ -190,12 +188,11 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetColorTemperatureDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagColorTemperature, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagColorTemperature, out int value))
                 return null;
             if (value == 0)
                 return "Auto";
-            var kelvin = ((value & 0x00FF0000) >> 8) | ((value & unchecked((int)(0xFF000000))) >> 24);
+            var kelvin = ((value & 0x00FF0000) >> 8) | ((value & unchecked((int)0xFF000000)) >> 24);
             return $"{kelvin} K";
         }
 
@@ -209,8 +206,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetDynamicRangeOptimizerDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagDynamicRangeOptimiser, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagDynamicRangeOptimiser, out int value))
                 return null;
 
             switch (value)
@@ -251,8 +247,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetImageStabilizationDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagImageStabilisation, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagImageStabilisation, out int value))
                 return null;
 
             switch (value)
@@ -269,8 +264,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetColorModeDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagColorMode, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagColorMode, out int value))
                 return null;
 
             switch (value)
@@ -319,8 +313,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetMacroDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagMacro, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagMacro, out int value))
                 return null;
 
             switch (value)
@@ -341,8 +334,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetExposureModeDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagExposureMode, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagExposureMode, out int value))
                 return null;
 
             switch (value)
@@ -417,8 +409,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetJpegQualityDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagJpegQuality, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagJpegQuality, out int value))
                 return null;
 
             switch (value)
@@ -439,8 +430,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetAntiBlurDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagAntiBlur, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagAntiBlur, out int value))
                 return null;
 
             switch (value)
@@ -461,8 +451,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetLongExposureNoiseReductionDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagLongExposureNoiseReductionOrFocusMode, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagLongExposureNoiseReductionOrFocusMode, out int value))
                 return null;
 
             switch (value)
@@ -481,8 +470,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetHighIsoNoiseReductionDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagHighIsoNoiseReduction, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagHighIsoNoiseReduction, out int value))
                 return null;
 
             switch (value)
@@ -507,8 +495,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetPictureEffectDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagPictureEffect, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagPictureEffect, out int value))
                 return null;
 
             switch (value)
@@ -600,22 +587,58 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetVignettingCorrectionDescription()
         {
-            return GetIndexedDescription(SonyType1MakernoteDirectory.TagVignettingCorrection,
-                "Off", null, "Auto");
+            if (!Directory.TryGetUInt32(SonyType1MakernoteDirectory.TagVignettingCorrection, out uint value))
+                return null;
+
+            switch (value)
+            {
+                case 0:
+                    return "Off";
+                case 2:
+                    return "Auto";
+                case 0xffffffff:
+                    return "N/A";
+                default:
+                    return $"Unknown ({value})";
+            }
         }
 
         [CanBeNull]
         public string GetLateralChromaticAberrationDescription()
         {
-            return GetIndexedDescription(SonyType1MakernoteDirectory.TagLateralChromaticAberration,
-                "Off", null, "Auto");
+            if (!Directory.TryGetUInt32(SonyType1MakernoteDirectory.TagLateralChromaticAberration, out uint value))
+                return null;
+
+            switch (value)
+            {
+                case 0:
+                    return "Off";
+                case 2:
+                    return "Auto";
+                case 0xffffffff:
+                    return "N/A";
+                default:
+                    return $"Unknown ({value})";
+            }
         }
 
         [CanBeNull]
         public string GetDistortionCorrectionDescription()
         {
-            return GetIndexedDescription(SonyType1MakernoteDirectory.TagDistortionCorrection,
-                "Off", null, "Auto");
+            if (!Directory.TryGetUInt32(SonyType1MakernoteDirectory.TagDistortionCorrection, out uint value))
+                return null;
+
+            switch (value)
+            {
+                case 0:
+                    return "Off";
+                case 2:
+                    return "Auto";
+                case 0xffffffff:
+                    return "N/A";
+                default:
+                    return $"Unknown ({value})";
+            }
         }
 
         [CanBeNull]
@@ -644,8 +667,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetSonyModelIdDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagSonyModelId, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagSonyModelId, out int value))
                 return null;
 
             switch (value)
@@ -734,8 +756,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetSceneModeDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagSceneMode, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagSceneMode, out int value))
                 return null;
 
             switch (value)
@@ -794,8 +815,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetAfModeDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagAfMode, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagAfMode, out int value))
                 return null;
 
             switch (value)
@@ -826,8 +846,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetAfIlluminatorDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagAfIlluminator, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagAfIlluminator, out int value))
                 return null;
 
             switch (value)
@@ -846,8 +865,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetFlashLevelDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagFlashLevel, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagFlashLevel, out int value))
                 return null;
 
             switch (value)
@@ -880,8 +898,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetReleaseModeDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagReleaseMode, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagReleaseMode, out int value))
                 return null;
 
             switch (value)
@@ -904,8 +921,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetSequenceNumberDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagReleaseMode, out value))
+            if (!Directory.TryGetInt32(SonyType1MakernoteDirectory.TagReleaseMode, out int value))
                 return null;
 
             switch (value)

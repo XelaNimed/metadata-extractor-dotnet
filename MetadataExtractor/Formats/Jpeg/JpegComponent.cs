@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,7 @@
 //
 #endregion
 
-#if !PORTABLE
+#if !NETSTANDARD1_3
 using System;
 #endif
 using JetBrains.Annotations;
@@ -34,23 +34,23 @@ namespace MetadataExtractor.Formats.Jpeg
     /// quantization table number.
     /// </summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
-#if !PORTABLE
+#if !NETSTANDARD1_3
     [Serializable]
 #endif
     public sealed class JpegComponent
     {
-        private readonly int _samplingFactorByte;
+        private readonly byte _samplingFactorByte;
 
-        public JpegComponent(int componentId, int samplingFactorByte, int quantizationTableNumber)
+        public JpegComponent(byte componentId, byte samplingFactorByte, byte quantizationTableNumber)
         {
             Id = componentId;
             _samplingFactorByte = samplingFactorByte;
             QuantizationTableNumber = quantizationTableNumber;
         }
 
-        public int Id { get; }
+        public byte Id { get; }
 
-        public int QuantizationTableNumber { get; }
+        public byte QuantizationTableNumber { get; }
 
         /// <summary>Returns the component name (one of: Y, Cb, Cr, I, or Q)</summary>
         /// <value>the component name</value>
@@ -80,5 +80,8 @@ namespace MetadataExtractor.Formats.Jpeg
         public int HorizontalSamplingFactor => (_samplingFactorByte >> 4) & 0x0F;
 
         public int VerticalSamplingFactor => _samplingFactorByte & 0x0F;
+
+        public override string ToString()
+            => $"Quantization table {QuantizationTableNumber}, Sampling factors {HorizontalSamplingFactor} horiz/{VerticalSamplingFactor} vert";
     }
 }

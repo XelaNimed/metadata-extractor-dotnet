@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,6 @@
 //
 #endregion
 
-using System.IO;
 using JetBrains.Annotations;
 using MetadataExtractor.Formats.Bmp;
 using MetadataExtractor.IO;
@@ -30,20 +29,21 @@ using Xunit;
 
 namespace MetadataExtractor.Tests.Formats.Bmp
 {
+    /// <summary>Unit tests for <see cref="BmpReader"/>.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class BmpReaderTest
     {
         [NotNull]
-        public static BmpHeaderDirectory ProcessBytes([NotNull] string file)
+        private static BmpHeaderDirectory ProcessBytes([NotNull] string filePath)
         {
-            using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var stream = TestDataUtil.OpenRead(filePath))
                 return new BmpReader().Extract(new SequentialStreamReader(stream));
         }
 
         [Fact]
-        public void TestMsPaint16Color()
+        public void MsPaint16Color()
         {
-            var directory = ProcessBytes("Tests/Data/16color-10x10.bmp");
+            var directory = ProcessBytes("Data/16color-10x10.bmp");
             Assert.False(directory.HasError);
             Assert.Equal(10, directory.GetInt32(BmpHeaderDirectory.TagImageWidth));
             Assert.Equal(10, directory.GetInt32(BmpHeaderDirectory.TagImageHeight));
@@ -58,9 +58,9 @@ namespace MetadataExtractor.Tests.Formats.Bmp
         }
 
         [Fact]
-        public void TestMsPaint24Bpp()
+        public void MsPaint24Bpp()
         {
-            var directory = ProcessBytes("Tests/Data/24bpp-10x10.bmp");
+            var directory = ProcessBytes("Data/24bpp-10x10.bmp");
             Assert.False(directory.HasError);
             Assert.Equal(10, directory.GetInt32(BmpHeaderDirectory.TagImageWidth));
             Assert.Equal(10, directory.GetInt32(BmpHeaderDirectory.TagImageHeight));

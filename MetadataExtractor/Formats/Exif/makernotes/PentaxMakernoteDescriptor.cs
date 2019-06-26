@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -84,8 +84,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetIsoSpeedDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(PentaxMakernoteDirectory.TagIsoSpeed, out value))
+            if (!Directory.TryGetInt32(PentaxMakernoteDirectory.TagIsoSpeed, out int value))
                 return null;
 
             switch (value)
@@ -128,8 +127,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetDigitalZoomDescription()
         {
-            float value;
-            if (!Directory.TryGetSingle(PentaxMakernoteDirectory.TagDigitalZoom, out value))
+            if (!Directory.TryGetSingle(PentaxMakernoteDirectory.TagDigitalZoom, out float value))
                 return null;
             return value == 0 ? "Off" : value.ToString("0.0###########");
         }

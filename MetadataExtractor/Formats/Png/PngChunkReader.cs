@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,6 +36,7 @@ namespace MetadataExtractor.Formats.Png
 
         /// <exception cref="PngProcessingException"/>
         /// <exception cref="System.IO.IOException"/>
+        [NotNull]
         public IEnumerable<PngChunk> Extract([NotNull] SequentialReader reader, [CanBeNull] ICollection<PngChunkType> desiredChunkTypes)
         {
             //
@@ -73,7 +74,7 @@ namespace MetadataExtractor.Formats.Png
             //
 
             // network byte order
-            reader.IsMotorolaByteOrder = true;
+            reader = reader.WithByteOrder(isMotorolaByteOrder: true);
 
             if (!_pngSignatureBytes.SequenceEqual(reader.GetBytes(_pngSignatureBytes.Length)))
                 throw new PngProcessingException("PNG signature mismatch");
@@ -87,6 +88,8 @@ namespace MetadataExtractor.Formats.Png
             {
                 // Process the next chunk.
                 var chunkDataLength = reader.GetInt32();
+                if (chunkDataLength < 0)
+                    throw new PngProcessingException("PNG chunk length exceeds maximum");
                 var chunkType = new PngChunkType(reader.GetBytes(4));
                 var willStoreChunk = desiredChunkTypes == null || desiredChunkTypes.Contains(chunkType);
                 var chunkData = reader.GetBytes(chunkDataLength);

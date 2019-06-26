@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
 #endregion
 
 using System;
-#if !PORTABLE
+#if !NETSTANDARD1_3
 using System.Runtime.Serialization;
 #endif
 using JetBrains.Annotations;
@@ -32,7 +32,7 @@ namespace MetadataExtractor
 {
     /// <summary>Base class for all metadata specific exceptions.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
-#if !PORTABLE
+#if !NETSTANDARD1_3
     [Serializable]
 #endif
     public class MetadataException : Exception
@@ -52,8 +52,8 @@ namespace MetadataExtractor
         {
         }
 
-#if !PORTABLE
-        protected MetadataException(SerializationInfo info, StreamingContext context)
+#if !NETSTANDARD1_3
+        protected MetadataException([NotNull] SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
         }

@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,14 +44,25 @@ namespace MetadataExtractor.IO
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public abstract class IndexedReader
     {
-        /// <summary>Get and set the byte order of this reader. <c>true</c> by default.</summary>
+        protected IndexedReader(bool isMotorolaByteOrder)
+        {
+            IsMotorolaByteOrder = isMotorolaByteOrder;
+        }
+
+        /// <summary>Get the byte order of this reader.</summary>
         /// <remarks>
         /// <list type="bullet">
         ///   <item><c>true</c> for Motorola (or big) endianness (also known as network byte order), with MSB before LSB.</item>
         ///   <item><c>false</c> for Intel (or little) endianness, with LSB before MSB.</item>
         /// </list>
         /// </remarks>
-        public bool IsMotorolaByteOrder { set; get; } = true;
+        public bool IsMotorolaByteOrder { get; }
+
+        public abstract IndexedReader WithByteOrder(bool isMotorolaByteOrder);
+
+        public abstract IndexedReader WithShiftedBaseOffset(int shift);
+
+        public abstract int ToUnshiftedOffset(int localOffset);
 
         /// <summary>Gets the byte value at the specified byte <c>index</c>.</summary>
         /// <remarks>
@@ -299,10 +310,6 @@ namespace MetadataExtractor.IO
 
         /// <exception cref="System.IO.IOException"/>
         [NotNull]
-        public string GetString(int index, int bytesRequested) => GetString(index, bytesRequested, Encoding.UTF8);
-
-        /// <exception cref="System.IO.IOException"/>
-        [NotNull]
         public string GetString(int index, int bytesRequested, [NotNull] Encoding encoding)
         {
             var bytes = GetBytes(index, bytesRequested);
@@ -358,6 +365,7 @@ namespace MetadataExtractor.IO
         /// </param>
         /// <returns>The read byte array.</returns>
         /// <exception cref="System.IO.IOException">The buffer does not contain enough bytes to satisfy this request.</exception>
+        [NotNull]
         public byte[] GetNullTerminatedBytes(int index, int maxLengthBytes)
         {
             var buffer = GetBytes(index, maxLengthBytes);

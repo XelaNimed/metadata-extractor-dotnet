@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -23,8 +23,14 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using JetBrains.Annotations;
+using MetadataExtractor.IO;
+#if NET35
+using DirectoryList = System.Collections.Generic.IList<MetadataExtractor.Directory>;
+#else
+using DirectoryList = System.Collections.Generic.IReadOnlyList<MetadataExtractor.Directory>;
+#endif
 
 namespace MetadataExtractor.Formats.QuickTime
 {
@@ -32,17 +38,12 @@ namespace MetadataExtractor.Formats.QuickTime
     {
         private static readonly DateTime _epoch = new DateTime(1904, 1, 1);
 
-        public static
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadMetadata(Stream stream)
+        [NotNull]
+        public static DirectoryList ReadMetadata([NotNull] Stream stream)
         {
             var directories = new List<Directory>();
 
-            Action<AtomCallbackArgs> trakHandler = a =>
+            void TrakHandler(AtomCallbackArgs a)
             {
                 switch (a.TypeString)
                 {
@@ -61,24 +62,37 @@ namespace MetadataExtractor.Formats.QuickTime
                         directory.Set(QuickTimeTrackHeaderDirectory.TagAlternateGroup, a.Reader.GetUInt16());
                         directory.Set(QuickTimeTrackHeaderDirectory.TagVolume, a.Reader.Get16BitFixedPoint());
                         a.Reader.Skip(2L);
-                        a.Reader.GetBytes(36);
+                        directory.Set(QuickTimeTrackHeaderDirectory.TagMatrix, a.Reader.GetMatrix());
                         directory.Set(QuickTimeTrackHeaderDirectory.TagWidth, a.Reader.Get32BitFixedPoint());
                         directory.Set(QuickTimeTrackHeaderDirectory.TagHeight, a.Reader.Get32BitFixedPoint());
+                        SetRotation(directory);
                         directories.Add(directory);
                         break;
                     }
                 }
-            };
+            }
 
-//            Action<AtomCallbackArgs> clipHandler = a =>
-//            {
-//                Debug.WriteLine($"- Atom {a.TypeString} of size {a.Size}");
-//            };
-
-            var moovHandler = (Action<AtomCallbackArgs>) (a =>
+            void SetRotation(QuickTimeTrackHeaderDirectory directory)
             {
-//                Debug.WriteLine($"- Atom {a.TypeString} of size {a.Size}");
+                var width = directory.GetInt32(QuickTimeTrackHeaderDirectory.TagWidth);
+                var height = directory.GetInt32(QuickTimeTrackHeaderDirectory.TagHeight);
+                if (width == 0 || height == 0 || directory.GetObject(QuickTimeTrackHeaderDirectory.TagRotation) != null) return;
 
+                if (directory.GetObject(QuickTimeTrackHeaderDirectory.TagMatrix) is float[] matrix && matrix.Length > 5)
+                {
+                    var x = matrix[1] + matrix[4];
+                    var y = matrix[0] + matrix[3];
+                    var theta = Math.Atan2(x, y);
+                    var degree = ((180 / Math.PI) * theta) - 45;
+                    if (degree < 0)
+                        degree += 360;
+
+                    directory.Set(QuickTimeTrackHeaderDirectory.TagRotation, degree);
+                }
+            }
+
+            void MoovHandler(AtomCallbackArgs a)
+            {
                 switch (a.TypeString)
                 {
                     case "mvhd":
@@ -107,7 +121,7 @@ namespace MetadataExtractor.Formats.QuickTime
                     }
                     case "trak":
                     {
-                        QuickTimeReader.ProcessAtoms(stream, trakHandler, a.BytesLeft);
+                        QuickTimeReader.ProcessAtoms(stream, TrakHandler, a.BytesLeft);
                         break;
                     }
 //                    case "clip":
@@ -125,17 +139,15 @@ namespace MetadataExtractor.Formats.QuickTime
 //                        break;
 //                    }
                 }
-            });
+            }
 
-            Action<AtomCallbackArgs> handler = a =>
+            void Handler(AtomCallbackArgs a)
             {
-//                Debug.WriteLine($"- Atom {a.TypeString} of size {a.Size}");
-
                 switch (a.TypeString)
                 {
                     case "moov":
                     {
-                        QuickTimeReader.ProcessAtoms(stream, moovHandler, a.BytesLeft);
+                        QuickTimeReader.ProcessAtoms(stream, MoovHandler, a.BytesLeft);
                         break;
                     }
                     case "ftyp":
@@ -151,9 +163,9 @@ namespace MetadataExtractor.Formats.QuickTime
                         break;
                     }
                 }
-            };
+            }
 
-            QuickTimeReader.ProcessAtoms(stream, handler);
+            QuickTimeReader.ProcessAtoms(stream, Handler);
 
             return directories;
         }

@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -52,6 +52,8 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             {
                 case OlympusEquipmentMakernoteDirectory.TagEquipmentVersion:
                     return GetEquipmentVersionDescription();
+                case OlympusEquipmentMakernoteDirectory.TagCameraType2:
+                    return GetCameraType2Description();
                 case OlympusEquipmentMakernoteDirectory.TagFocalPlaneDiagonal:
                     return GetFocalPlaneDiagonalDescription();
                 case OlympusEquipmentMakernoteDirectory.TagBodyFirmwareVersion:
@@ -86,6 +88,19 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         }
 
         [CanBeNull]
+        public string GetCameraType2Description()
+        {
+            var cameratype = Directory.GetString(OlympusEquipmentMakernoteDirectory.TagCameraType2);
+            if (cameratype == null)
+                return null;
+
+            if (OlympusMakernoteDirectory.OlympusCameraTypes.TryGetValue(cameratype, out var mapped))
+                return mapped;
+
+            return cameratype;
+        }
+
+        [CanBeNull]
         public string GetFocalPlaneDiagonalDescription()
         {
             return Directory.GetString(OlympusEquipmentMakernoteDirectory.TagFocalPlaneDiagonal) + " mm";
@@ -94,12 +109,11 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetBodyFirmwareVersionDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusEquipmentMakernoteDirectory.TagBodyFirmwareVersion, out value))
+            if (!Directory.TryGetInt32(OlympusEquipmentMakernoteDirectory.TagBodyFirmwareVersion, out int value))
                 return null;
 
-            var hexstring = ((uint)value).ToString("X4");
-            return hexstring.Insert(hexstring.Length - 3, ".");
+            var hex = ((uint)value).ToString("X4");
+            return hex.Substring(0, hex.Length - 3) + "." + hex.Substring(hex.Length - 3);
         }
 
         [CanBeNull]
@@ -125,15 +139,11 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             if (values.Length < 6)
                 return null;
 
-            int num1;
-            int num2;
-            int num3;
-            string lensType;
 
-            return int.TryParse(values[0], out num1) &&
-                   int.TryParse(values[2], out num2) &&
-                   int.TryParse(values[3], out num3) &&
-                   _olympusLensTypes.TryGetValue($"{num1:X} {num2:X2} {num3:X2}", out lensType)
+            return int.TryParse(values[0], out int num1) &&
+                   int.TryParse(values[2], out int num2) &&
+                   int.TryParse(values[3], out int num3) &&
+                   _olympusLensTypes.TryGetValue($"{num1:X} {num2:X2} {num3:X2}", out string lensType)
                        ? lensType
                        : null;
         }
@@ -141,8 +151,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetLensFirmwareVersionDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusEquipmentMakernoteDirectory.TagLensFirmwareVersion, out value))
+            if (!Directory.TryGetInt32(OlympusEquipmentMakernoteDirectory.TagLensFirmwareVersion, out int value))
                 return null;
 
             var hexstring = ((uint)value).ToString("X4");
@@ -152,8 +161,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetMaxApertureAtMinFocalDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusEquipmentMakernoteDirectory.TagMaxApertureAtMinFocal, out value))
+            if (!Directory.TryGetInt32(OlympusEquipmentMakernoteDirectory.TagMaxApertureAtMinFocal, out int value))
                 return null;
 
             return CalcMaxAperture((ushort)value).ToString("0.#");
@@ -162,8 +170,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetMaxApertureAtMaxFocalDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusEquipmentMakernoteDirectory.TagMaxApertureAtMaxFocal, out value))
+            if (!Directory.TryGetInt32(OlympusEquipmentMakernoteDirectory.TagMaxApertureAtMaxFocal, out int value))
                 return null;
 
             return CalcMaxAperture((ushort)value).ToString("0.#");
@@ -172,8 +179,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetMaxApertureDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusEquipmentMakernoteDirectory.TagMaxAperture, out value))
+            if (!Directory.TryGetInt32(OlympusEquipmentMakernoteDirectory.TagMaxAperture, out int value))
                 return null;
 
             return CalcMaxAperture((ushort)value).ToString("0.#");
@@ -187,8 +193,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetLensPropertiesDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusEquipmentMakernoteDirectory.TagLensProperties, out value))
+            if (!Directory.TryGetInt32(OlympusEquipmentMakernoteDirectory.TagLensProperties, out int value))
                 return null;
 
             return $"0x{value:X4}";
@@ -217,13 +222,10 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             if (values.Length < 6)
                 return null;
 
-            int num1;
-            int num2;
-            string extenderType;
 
-            return int.TryParse(values[0], out num1) &&
-                   int.TryParse(values[2], out num2) &&
-                   _olympusExtenderTypes.TryGetValue($"{num1:X} {num2:X2}", out extenderType)
+            return int.TryParse(values[0], out int num1) &&
+                   int.TryParse(values[2], out int num2) &&
+                   _olympusExtenderTypes.TryGetValue($"{num1:X} {num2:X2}", out string extenderType)
                        ? extenderType
                        : null;
         }

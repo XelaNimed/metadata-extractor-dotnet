@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,6 @@
 #endregion
 
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using MetadataExtractor.Formats.Exif;
 using MetadataExtractor.Formats.Jpeg;
@@ -31,21 +30,23 @@ using Xunit;
 
 namespace MetadataExtractor.Tests.Formats.Jpeg
 {
+    /// <summary>Unit tests for <see cref="JpegMetadataReader"/>.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class JpegMetadataReaderTest
     {
-#if !PORTABLE
+#if !NETCOREAPP1_0
         [Fact]
-        public void TestExtractMetadata()
+        public void ExtractMetadataUsingPath()
         {
-            Validate(JpegMetadataReader.ReadMetadata("Tests/Data/withExif.jpg"));
+            Validate(JpegMetadataReader.ReadMetadata("Data/withExif.jpg"));
         }
 #endif
 
         [Fact]
-        public void TestExtractMetadataUsingStream()
+        public void ExtractMetadataUsingStream()
         {
-            Validate(JpegMetadataReader.ReadMetadata(new FileStream("Tests/Data/withExif.jpg", FileMode.Open, FileAccess.Read, FileShare.Read)));
+            using (var stream = TestDataUtil.OpenRead("Data/withExif.jpg"))
+                Validate(JpegMetadataReader.ReadMetadata(stream));
         }
 
         private static void Validate(IEnumerable<Directory> metadata)

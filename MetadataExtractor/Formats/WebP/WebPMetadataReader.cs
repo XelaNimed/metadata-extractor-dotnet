@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,11 +25,15 @@
 using System.Collections.Generic;
 using System.IO;
 using JetBrains.Annotations;
-#if !PORTABLE
 using MetadataExtractor.Formats.FileSystem;
-#endif
 using MetadataExtractor.Formats.Riff;
 using MetadataExtractor.IO;
+
+#if NET35
+using DirectoryList = System.Collections.Generic.IList<MetadataExtractor.Directory>;
+#else
+using DirectoryList = System.Collections.Generic.IReadOnlyList<MetadataExtractor.Directory>;
+#endif
 
 namespace MetadataExtractor.Formats.WebP
 {
@@ -37,17 +41,10 @@ namespace MetadataExtractor.Formats.WebP
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public static class WebPMetadataReader
     {
-#if !PORTABLE
         /// <exception cref="System.IO.IOException"/>
         /// <exception cref="RiffProcessingException"/>
         [NotNull]
-        public static
-#if NET35
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadMetadata([NotNull] string filePath)
+        public static DirectoryList ReadMetadata([NotNull] string filePath)
         {
             var directories = new List<Directory>();
 
@@ -59,18 +56,10 @@ namespace MetadataExtractor.Formats.WebP
             return directories;
         }
 
-#endif
-
         /// <exception cref="System.IO.IOException"/>
         /// <exception cref="RiffProcessingException"/>
         [NotNull]
-        public static
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadMetadata([NotNull] Stream stream)
+        public static DirectoryList ReadMetadata([NotNull] Stream stream)
         {
             var directories = new List<Directory>();
             new RiffReader().ProcessRiff(new SequentialStreamReader(stream), new WebPRiffHandler(directories));

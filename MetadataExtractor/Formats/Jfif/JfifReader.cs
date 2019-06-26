@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,8 +26,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using JetBrains.Annotations;
 using MetadataExtractor.Formats.Jpeg;
 using MetadataExtractor.IO;
+
+#if NET35
+using DirectoryList = System.Collections.Generic.IList<MetadataExtractor.Directory>;
+#else
+using DirectoryList = System.Collections.Generic.IReadOnlyList<MetadataExtractor.Directory>;
+#endif
 
 namespace MetadataExtractor.Formats.Jfif
 {
@@ -42,33 +49,25 @@ namespace MetadataExtractor.Formats.Jfif
     /// <author>Yuri Binev, Drew Noakes, Markus Meyer</author>
     public sealed class JfifReader : IJpegSegmentMetadataReader
     {
-        private const string Preamble = "JFIF";
+        public const string JpegSegmentPreamble = "JFIF";
 
-        public IEnumerable<JpegSegmentType> GetSegmentTypes()
-        {
-            yield return JpegSegmentType.App0;
-        }
+        ICollection<JpegSegmentType> IJpegSegmentMetadataReader.SegmentTypes => new [] { JpegSegmentType.App0 };
 
-        public
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadJpegSegments(IEnumerable<byte[]> segments, JpegSegmentType segmentType)
+        public DirectoryList ReadJpegSegments(IEnumerable<JpegSegment> segments)
         {
             // Skip segments not starting with the required header
             return segments
-                .Where(segment => segment.Length >= Preamble.Length && Preamble == Encoding.UTF8.GetString(segment, 0, Preamble.Length))
-                .Select(segment => Extract(new ByteArrayReader(segment)))
-#if NET35 || PORTABLE
+                .Where(segment => segment.Bytes.Length >= JpegSegmentPreamble.Length && JpegSegmentPreamble == Encoding.UTF8.GetString(segment.Bytes, 0, JpegSegmentPreamble.Length))
+                .Select(segment => Extract(new ByteArrayReader(segment.Bytes)))
+#if NET35
                 .Cast<Directory>()
 #endif
                 .ToList();
         }
 
         /// <summary>Reads JFIF values and returns them in an <see cref="JfifDirectory"/>.</summary>
-        public JfifDirectory Extract(IndexedReader reader)
+        [NotNull]
+        public JfifDirectory Extract([NotNull] IndexedReader reader)
         {
             var directory = new JfifDirectory();
 

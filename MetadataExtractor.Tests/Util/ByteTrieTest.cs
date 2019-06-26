@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,18 +28,19 @@ using Xunit;
 
 namespace MetadataExtractor.Tests.Util
 {
+    /// <summary>Unit tests for <see cref="ByteTrie{T}"/>.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class ByteTrieTest
     {
         [Fact]
-        public void TestBasics()
+        public void Basics()
         {
             var trie = new ByteTrie<string>();
 
             var strings = new[] { "HELLO", "HELLO WORLD", "HERBERT" };
 
             foreach (var s in strings)
-                trie.AddPath(s, Encoding.UTF8.GetBytes(s));
+                trie.Add(s, Encoding.UTF8.GetBytes(s));
 
             foreach (var s1 in strings)
                 Assert.Same(s1, trie.Find(Encoding.UTF8.GetBytes(s1)));

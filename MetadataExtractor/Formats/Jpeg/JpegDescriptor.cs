@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -120,9 +120,7 @@ namespace MetadataExtractor.Formats.Jpeg
             if (value == null)
                 return null;
 
-            return value.Name + " component: Quantization table "
-                + value.QuantizationTableNumber + ", Sampling factors "
-                + value.HorizontalSamplingFactor + " horiz/" + value.VerticalSamplingFactor + " vert";
+            return $"{value.Name} component: {value}";
         }
     }
 }

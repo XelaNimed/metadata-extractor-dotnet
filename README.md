@@ -2,8 +2,7 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/90hfuleg8wj8r956?svg=true)](https://ci.appveyor.com/project/drewnoakes/metadata-extractor-dotnet)
 [![MetadataExtractor NuGet version](https://img.shields.io/nuget/v/MetadataExtractor.svg)](https://www.nuget.org/packages/MetadataExtractor/)
-[![Issue Stats](http://issuestats.com/github/drewnoakes/metadata-extractor-dotnet/badge/issue?style=flat)](http://issuestats.com/github/drewnoakes/metadata-extractor-dotnet)
-<!--[![MetadataExtractor download stats](https://img.shields.io/nuget/dt/MetadataExtractor.svg)](https://www.nuget.org/packages/MetadataExtractor/)-->
+[![MetadataExtractor NuGet pre-release version](https://img.shields.io/nuget/vpre/MetadataExtractor.svg)](https://www.nuget.org/packages/MetadataExtractor/)
 
 _MetadataExtractor_ is a straightforward .NET library for reading metadata from image and movie files.
 
@@ -12,6 +11,8 @@ _MetadataExtractor_ is a straightforward .NET library for reading metadata from 
 The easiest way to use this library is via its [NuGet package](https://www.nuget.org/packages/MetadataExtractor/):
 
     PM> Install-Package MetadataExtractor
+
+Alternatively, search for `MetadataExtractor` in the Visual Studio NuGet Package Manager.
 
 ## Usage
 
@@ -61,6 +62,7 @@ The library understands several formats of metadata, many of which may be presen
 * [ICC Profiles](http://en.wikipedia.org/wiki/ICC_profile)
 * [Photoshop](http://en.wikipedia.org/wiki/Photoshop) fields
 * [WebP](http://en.wikipedia.org/wiki/WebP) properties
+* [Netpbm](https://en.wikipedia.org/wiki/Netpbm_format) properties
 * [PNG](http://en.wikipedia.org/wiki/Portable_Network_Graphics) properties
 * [BMP](http://en.wikipedia.org/wiki/BMP_file_format) properties
 * [GIF](http://en.wikipedia.org/wiki/Graphics_Interchange_Format) properties
@@ -78,6 +80,7 @@ It will process files of type:
 * GIF
 * ICO
 * PCX
+* Netpbm
 * Camera Raw
   * NEF (Nikon)
   * CR2 (Canon)
@@ -93,6 +96,7 @@ Camera-specific "makernote" data is decoded for cameras manufactured by:
 * Apple
 * Canon
 * Casio
+* DJI
 * Epson
 * Fujifilm
 * Kodak
@@ -110,57 +114,61 @@ Camera-specific "makernote" data is decoded for cameras manufactured by:
 
 ## Supported Frameworks
 
-Multiple target frameworks are supported via the single NuGet package. This allows supports Xamarin for Android and iOS, as well as:
+This library targets:
 
-- .NET Framework 3.5
-- .NET Framework 4.5
-- .NET Framework 4.5 (Portable)
-- Silverlight 5.0
-- Windows 8.0
-- Windows Phone 8.1
-- Windows Phone Silverlight 8.0
+- .NET Framework 3.5 (`net35`)
+- .NET Framework 4.5 (`net45`)
+- .NET Standard 1.3 (`netstandard1.3`)
+- .NET Standard 2.0 (`netstandard2.0`)
 
-Note that the PCL version does not support file-system metadata due to restricted IO APIs.
+All target frameworks are provided via the [one NuGet package](https://www.nuget.org/packages/MetadataExtractor).
 
-## Mailing List
+`net35` and `net45` target the full .NET Framework. `net45` uses the newer `IReadOnlyList<>` on some public APIs where `net35` uses `IList<>`. Internally `net45` also uses some newer library features for slightly improved performance.
 
-The [metadata-extractor-dev](https://groups.google.com/forum/#!forum/metadata-extractor-dev) Google Group is for discussion about the development of the library and questions about its usage.
+`netstandard1.3` implements version 1.3 of the [.NET Standard](https://docs.microsoft.com/en-us/dotnet/articles/standard/library) which covers .NET Core, Mono, Xamarin platforms, UWP, and future platforms. 
 
-## Feedback
+A PCL build was supported until [version 1.5.3](https://www.nuget.org/packages/MetadataExtractor/1.5.3) which supported Silverlight 5.0, Windows 8.0, Windows Phone 8.1 and Windows Phone Silverlight 8.0. PCL versions did not support file-system metadata due to restricted IO APIs.
 
-Have questions or ideas? Try the [mailing list](http://groups.google.com/group/metadata-extractor-dev) or [open an issue](https://github.com/drewnoakes/metadata-extractor-dotnet/issues). GitHub's issue tracker accepts attachments, and sample images are often crucial in debugging problems.
+## Building
 
-## Contribute
+If using Visual Studio to compile this repo, ensure you have the _.NET Core Development Tools_ workload installed. This can be verified and corrected using the Visual Studio Installer in VS2017 and later.
 
-If you want to get your hands dirty, clone this repository, enhance the library and submit a pull request. Review the issue list and ask around on the mailing list to avoid duplication of work.
+## Questions & Feedback
 
-An easier way to help is to contribute to the [sample image file library](https://github.com/drewnoakes/metadata-extractor/wiki/ImageDatabase) used for research and testing.
+The quickest way to have your questions answered is via [Stack Overflow](http://stackoverflow.com/questions/tagged/metadata-extractor).
+Check whether your question has already been asked, and if not, ask a new one tagged with both `metadata-extractor` and `.net`.
+
+Bugs and feature requests should be provided via the project's [issue tracker](https://github.com/drewnoakes/metadata-extractor-dotnet/issues).
+Please attach sample images where possible as most issues cannot be investigated without an image.
+
+## Contributing
+
+If you want to get your hands dirty, making a pull request is a great way to enhance the library.
+In general it's best to create an issue first that captures the problem you want to address.
+You can discuss your proposed solution in that issue.
+This gives others a chance to provide feedback before you spend your valuable time working on it.
+
+An easier way to help is to contribute to the [sample image file library](https://github.com/drewnoakes/metadata-extractor-images/wiki) used for research and testing.
 
 ## Credits
 
 This library is developed by [Drew Noakes](https://drewnoakes.com/code/exif/) and contributors.
 
 Thanks are due to the many [users](https://github.com/drewnoakes/metadata-extractor/wiki/UsedBy) who sent in suggestions, bug reports,
-[sample images](https://github.com/drewnoakes/metadata-extractor/wiki/ImageDatabase) from their cameras as well as encouragement.
+[sample images](https://github.com/drewnoakes/metadata-extractor-images/wiki) from their cameras as well as encouragement.
 Wherever possible, they have been credited in the source code and commit logs.
 
-This library was [originally written in Java](https://github.com/drewnoakes/metadata-extractor/) in 2002. In 2014, Yakov Danilov (for Imazen LLC) converted the code to C# using Sharpen. Both projects are now developed in unison and aim to be functionally equivalent.
+This library was [originally written in Java](https://github.com/drewnoakes/metadata-extractor/) in 2002.
+In 2014, Yakov Danilov (for Imazen LLC) converted the code to C# using Sharpen.
+The code has subsequently been edited to provide a more idiomatic .NET API.
+Both projects are now developed in unison and aim to be functionally equivalent.
 
-## License
+## Other languages
 
-Copyright 2002-2016 Drew Noakes
+- Java  [metadata-extractor](https://github.com/drewnoakes/metadata-extractor) is the original implementation of this project, from which this .NET version was ported
+- PHP [php-metadata-extractor](https://github.com/gomoob/php-metadata-extractor) wraps the Java project, making it available to users of PHP
 
-> Licensed under the Apache License, Version 2.0 (the "License");
-> you may not use this file except in compliance with the License.
-> You may obtain a copy of the License at
->
->     http://www.apache.org/licenses/LICENSE-2.0
->
-> Unless required by applicable law or agreed to in writing, software
-> distributed under the License is distributed on an "AS IS" BASIS,
-> WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-> See the License for the specific language governing permissions and
-> limitations under the License.
+---
 
 More information about this project is available at:
 

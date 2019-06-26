@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,19 +27,20 @@ using Xunit;
 
 namespace MetadataExtractor.Tests.Formats.Exif
 {
-    /// <summary>JUnit test case for class ExifThumbnailDescriptor.</summary>
+    /// <summary>Unit tests for <see cref="ExifThumbnailDescriptor"/>.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class ExifThumbnailDescriptorTest
     {
-
         [Fact]
-        public void TestGetYCbCrSubsamplingDescription()
+        public void GetYCbCrSubsamplingDescription()
         {
             var directory = new ExifThumbnailDirectory();
-            directory.Set(ExifDirectoryBase.TagYCbCrSubsampling, new[] { 2, 1 });
             var descriptor = new ExifThumbnailDescriptor(directory);
+
+            directory.Set(ExifDirectoryBase.TagYCbCrSubsampling, new[] { 2, 1 });
             Assert.Equal("YCbCr4:2:2", descriptor.GetDescription(ExifDirectoryBase.TagYCbCrSubsampling));
             Assert.Equal("YCbCr4:2:2", descriptor.GetYCbCrSubsamplingDescription());
+
             directory.Set(ExifDirectoryBase.TagYCbCrSubsampling, new[] { 2, 2 });
             Assert.Equal("YCbCr4:2:0", descriptor.GetDescription(ExifDirectoryBase.TagYCbCrSubsampling));
             Assert.Equal("YCbCr4:2:0", descriptor.GetYCbCrSubsamplingDescription());

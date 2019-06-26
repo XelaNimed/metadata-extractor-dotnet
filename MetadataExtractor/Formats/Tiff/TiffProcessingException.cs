@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
 #endregion
 
 using System;
-#if !PORTABLE
+#if !NETSTANDARD1_3
 using System.Runtime.Serialization;
 #endif
 using JetBrains.Annotations;
@@ -33,7 +33,7 @@ namespace MetadataExtractor.Formats.Tiff
     /// <summary>An exception class thrown upon unexpected and fatal conditions while processing a TIFF file.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     /// <author>Darren Salomons</author>
-#if !PORTABLE
+#if !NETSTANDARD1_3
     [Serializable]
 #endif
     public class TiffProcessingException : ImageProcessingException
@@ -53,8 +53,8 @@ namespace MetadataExtractor.Formats.Tiff
         {
         }
 
-#if !PORTABLE
-        protected TiffProcessingException(SerializationInfo info, StreamingContext context)
+#if !NETSTANDARD1_3
+        protected TiffProcessingException([NotNull] SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
         }

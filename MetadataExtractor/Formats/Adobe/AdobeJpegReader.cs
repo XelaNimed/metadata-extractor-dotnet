@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,8 +27,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using JetBrains.Annotations;
 using MetadataExtractor.Formats.Jpeg;
 using MetadataExtractor.IO;
+
+#if NET35
+using DirectoryList = System.Collections.Generic.IList<MetadataExtractor.Directory>;
+#else
+using DirectoryList = System.Collections.Generic.IReadOnlyList<MetadataExtractor.Directory>;
+#endif
 
 namespace MetadataExtractor.Formats.Adobe
 {
@@ -37,39 +44,31 @@ namespace MetadataExtractor.Formats.Adobe
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class AdobeJpegReader : IJpegSegmentMetadataReader
     {
-        private const string Preamble = "Adobe";
+        public const string JpegSegmentPreamble = "Adobe";
 
-        public IEnumerable<JpegSegmentType> GetSegmentTypes()
-        {
-            yield return JpegSegmentType.AppE;
-        }
+        ICollection<JpegSegmentType> IJpegSegmentMetadataReader.SegmentTypes => new [] { JpegSegmentType.AppE };
 
-        public
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadJpegSegments(IEnumerable<byte[]> segments, JpegSegmentType segmentType)
+        public DirectoryList ReadJpegSegments(IEnumerable<JpegSegment> segments)
         {
             return segments
-                .Where(segment => segment.Length == 12 && Preamble.Equals(Encoding.UTF8.GetString(segment, 0, Preamble.Length), StringComparison.OrdinalIgnoreCase))
-                .Select(bytes => Extract(new SequentialByteArrayReader(bytes)))
-#if NET35 || PORTABLE
+                .Where(segment => segment.Bytes.Length == 12 && JpegSegmentPreamble.Equals(Encoding.UTF8.GetString(segment.Bytes, 0, JpegSegmentPreamble.Length), StringComparison.OrdinalIgnoreCase))
+                .Select(bytes => Extract(new SequentialByteArrayReader(bytes.Bytes)))
+#if NET35
                 .Cast<Directory>()
 #endif
                 .ToList();
         }
 
-        public AdobeJpegDirectory Extract(SequentialReader reader)
+        [NotNull]
+        public AdobeJpegDirectory Extract([NotNull] SequentialReader reader)
         {
-            reader.IsMotorolaByteOrder = false;
+            reader = reader.WithByteOrder(isMotorolaByteOrder: false);
 
             var directory = new AdobeJpegDirectory();
 
             try
             {
-                if (reader.GetString(Preamble.Length) != Preamble)
+                if (reader.GetString(JpegSegmentPreamble.Length, Encoding.UTF8) != JpegSegmentPreamble)
                 {
                     directory.AddError("Invalid Adobe JPEG data header.");
                     return directory;

@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -141,6 +141,8 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
                     return GetToneLevelDescription();
                 case OlympusCameraSettingsMakernoteDirectory.TagArtFilterEffect:
                     return GetArtFilterEffectDescription();
+                case OlympusCameraSettingsMakernoteDirectory.TagColorCreatorEffect:
+                    return GetColorCreatorEffectDescription();
 
                 case OlympusCameraSettingsMakernoteDirectory.TagDriveMode:
                     return GetDriveModeDescription();
@@ -202,8 +204,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetMeteringModeDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagMeteringMode, out value))
+            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagMeteringMode, out int value))
                 return null;
 
             switch (value)
@@ -252,8 +253,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             if (values == null)
             {
                 // check if it's only one value long also
-                int value;
-                if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagFocusMode, out value))
+                if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagFocusMode, out int value))
                     return null;
 
                 values = new ushort[1];
@@ -322,8 +322,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             if (values == null)
             {
                 // check if it's only one value long also
-                int value;
-                if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagFocusProcess, out value))
+                if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagFocusProcess, out int value))
                     return null;
 
                 values = new ushort[1];
@@ -417,6 +416,9 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             var p3 = (int)(vals[index + 2].ToDouble() * 100);
             var p4 = (int)(vals[index + 3].ToDouble() * 100);
 
+            if (p1 + p2 + p3 + p4 == 0)
+                return "n/a";
+
             return $"({p1}%,{p2}%) ({p3}%,{p4}%)";
 
         }
@@ -431,8 +433,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetFlashModeDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagFlashMode, out value))
+            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagFlashMode, out int value))
                 return null;
 
             if (value == 0)
@@ -454,8 +455,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetFlashRemoteControlDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagFlashRemoteControl, out value))
+            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagFlashRemoteControl, out int value))
                 return null;
 
             switch (value)
@@ -594,8 +594,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetWhiteBalance2Description()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagWhiteBalance2, out value))
+            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagWhiteBalance2, out int value))
                 return null;
 
             switch (value)
@@ -654,8 +653,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetWhiteBalanceTemperatureDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagWhiteBalanceTemperature, out value))
+            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagWhiteBalanceTemperature, out int value))
                 return null;
             if (value == 0)
                 return "Auto";
@@ -700,8 +698,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetSceneModeDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagSceneMode, out value))
+            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagSceneMode, out int value))
                 return null;
 
             switch (value)
@@ -828,8 +825,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetNoiseReductionDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagNoiseReduction, out value))
+            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagNoiseReduction, out int value))
                 return null;
 
             var sb = new StringBuilder();
@@ -921,8 +917,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             if (values == null)
             {
                 // check if it's only one value long also
-                int value;
-                if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagPictureMode, out value))
+                if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagPictureMode, out int value))
                     return null;
 
                 values = new ushort[1];
@@ -1061,12 +1056,10 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             var sb = new StringBuilder();
             for (var i = 0; i < values.Length; i++)
             {
-                if (i == 1)
-                    sb.Append("Highlights ");
-                else if (i == 5)
-                    sb.Append("Shadows ");
-
-                sb.Append(values[i] + "; ");
+                if (i == 0 || i == 4 || i == 8 || i == 12 || i == 16 || i == 20 || i == 24)
+                    sb.Append(_toneLevelType[values[i]] + "; ");
+                else
+                    sb.Append(values[i] + "; ");
             }
 
             if (sb.Length > 0)
@@ -1086,9 +1079,9 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             for (var i = 0; i < values.Length; i++)
             {
                 if (i == 0)
-                {
                     sb.Append((_filters.ContainsKey(values[i]) ? _filters[values[i]] : "[unknown]") + "; ");
-                }
+                else if (i == 3)
+                    sb.Append("Partial Color " + values[i] + "; ");
                 else if (i == 4)
                 {
                     switch (values[i])
@@ -1120,10 +1113,59 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
                     }
                     sb.Append("; ");
                 }
+                else if (i == 6)
+                {
+                    switch (values[i])
+                    {
+                        case 0:
+                            sb.Append("No Color Filter");
+                            break;
+                        case 1:
+                            sb.Append("Yellow Color Filter");
+                            break;
+                        case 2:
+                            sb.Append("Orange Color Filter");
+                            break;
+                        case 3:
+                            sb.Append("Red Color Filter");
+                            break;
+                        case 4:
+                            sb.Append("Green Color Filter");
+                            break;
+                        default:
+                            sb.Append("Unknown (").Append(values[i]).Append(')');
+                            break;
+                    }
+                    sb.Append("; ");
+                }
                 else
                 {
                     sb.Append(values[i] + "; ");
                 }
+            }
+
+            if (sb.Length > 0)
+                sb.Remove(sb.Length - 2, 2);
+
+            return sb.ToString();
+        }
+
+        [CanBeNull]
+        public string GetColorCreatorEffectDescription()
+        {
+            var values = Directory.GetObject(OlympusCameraSettingsMakernoteDirectory.TagColorCreatorEffect) as short[];
+            if (values == null)
+                return null;
+
+            var sb = new StringBuilder();
+            for (var i = 0; i < values.Length; i++)
+            {
+                if (i == 0)
+                    sb.Append("Color " + values[i] + "; ");
+                else if (i == 3)
+                    sb.Append("Strength " + values[i] + "; ");
+                else
+                    sb.Append(values[i] + "; ");
             }
 
             if (sb.Length > 0)
@@ -1143,7 +1185,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             if (values == null)
                 return null;
 
-            if (values.Length == 0 || (values.Length > 0 && values[0] == 0))
+            if (values.Length == 0 || values.Length > 0 && values[0] == 0)
                 return "Single Shot";
 
             var a = new StringBuilder();
@@ -1261,8 +1303,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetManometerPressureDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagManometerPressure, out value))
+            if (!Directory.TryGetInt32(OlympusCameraSettingsMakernoteDirectory.TagManometerPressure, out int value))
                 return null;
 
             return $"{value/10.0} kPa";
@@ -1367,6 +1408,14 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
 
             return sb.ToString(0, sb.Length - 2);
         }
+
+        private static readonly Dictionary<int, string> _toneLevelType = new Dictionary<int, string>
+        {
+            { 0, "0" },
+            { -31999, "Highlights " },
+            { -31998, "Shadows " },
+            { -31997, "Midtones " }
+        };
 
         // ArtFilter, ArtFilterEffect and MagicFilter values
         private static readonly Dictionary<int, string> _filters = new Dictionary<int, string>

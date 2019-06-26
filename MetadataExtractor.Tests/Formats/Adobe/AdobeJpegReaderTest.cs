@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,26 +31,29 @@ using Xunit;
 
 namespace MetadataExtractor.Tests.Formats.Adobe
 {
+    /// <summary>Unit tests for <see cref="AdobeJpegReader"/>.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class AdobeJpegReaderTest
     {
         [NotNull]
-        public static AdobeJpegDirectory ProcessBytes([NotNull] string filePath)
+        private static AdobeJpegDirectory ProcessBytes([NotNull] string filePath)
         {
             return new AdobeJpegReader()
-                .Extract(new SequentialByteArrayReader(File.ReadAllBytes(filePath)));
+                .Extract(new SequentialByteArrayReader(File.ReadAllBytes(TestDataUtil.GetPath(filePath))));
         }
 
         [Fact]
-        public void TestSegmentTypes()
+        public void SegmentTypes()
         {
-            Assert.Equal(new[] { JpegSegmentType.AppE }, new AdobeJpegReader().GetSegmentTypes());
+            Assert.Equal(
+                new[] { JpegSegmentType.AppE },
+                ((IJpegSegmentMetadataReader)new AdobeJpegReader()).SegmentTypes);
         }
 
         [Fact]
-        public void TestReadAdobeJpegMetadata1()
+        public void ReadAdobeJpegMetadata1()
         {
-            var directory = ProcessBytes("Tests/Data/adobeJpeg1.jpg.appe");
+            var directory = ProcessBytes("Data/adobeJpeg1.jpg.appe");
 
             Assert.False(directory.HasError, directory.Errors.ToString());
             Assert.Equal(4, directory.TagCount);

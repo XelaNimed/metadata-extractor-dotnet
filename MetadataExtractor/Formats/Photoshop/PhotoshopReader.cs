@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,6 +34,12 @@ using MetadataExtractor.Formats.Jpeg;
 using MetadataExtractor.Formats.Xmp;
 using MetadataExtractor.IO;
 
+#if NET35
+using DirectoryList = System.Collections.Generic.IList<MetadataExtractor.Directory>;
+#else
+using DirectoryList = System.Collections.Generic.IReadOnlyList<MetadataExtractor.Directory>;
+#endif
+
 namespace MetadataExtractor.Formats.Photoshop
 {
     /// <summary>Reads metadata created by Photoshop and stored in the APPD segment of JPEG files.</summary>
@@ -46,36 +52,21 @@ namespace MetadataExtractor.Formats.Photoshop
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class PhotoshopReader : IJpegSegmentMetadataReader
     {
-        [NotNull]
-        private const string JpegSegmentPreamble = "Photoshop 3.0";
+        public const string JpegSegmentPreamble = "Photoshop 3.0";
 
-        public IEnumerable<JpegSegmentType> GetSegmentTypes()
-        {
-            yield return JpegSegmentType.AppD;
-        }
+        ICollection<JpegSegmentType> IJpegSegmentMetadataReader.SegmentTypes => new [] { JpegSegmentType.AppD };
 
-        public
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadJpegSegments(IEnumerable<byte[]> segments, JpegSegmentType segmentType)
+        public DirectoryList ReadJpegSegments(IEnumerable<JpegSegment> segments)
         {
             var preambleLength = JpegSegmentPreamble.Length;
             return segments
-                .Where(segment => segment.Length >= preambleLength + 1 && JpegSegmentPreamble == Encoding.UTF8.GetString(segment, 0, preambleLength))
-                .SelectMany(segment => Extract(new SequentialByteArrayReader(segment, preambleLength + 1), segment.Length - preambleLength - 1))
+                .Where(segment => segment.Bytes.Length >= preambleLength + 1 && JpegSegmentPreamble == Encoding.UTF8.GetString(segment.Bytes, 0, preambleLength))
+                .SelectMany(segment => Extract(new SequentialByteArrayReader(segment.Bytes, preambleLength + 1), segment.Bytes.Length - preambleLength - 1))
                 .ToList();
         }
 
-        public
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            Extract([NotNull] SequentialReader reader, int length)
+        [NotNull]
+        public DirectoryList Extract([NotNull] SequentialReader reader, int length)
         {
             var directory = new PhotoshopDirectory();
 
@@ -96,7 +87,7 @@ namespace MetadataExtractor.Formats.Photoshop
                 try
                 {
                     // 4 bytes for the signature ("8BIM", "PHUT", etc.)
-                    var signature = reader.GetString(4);
+                    var signature = reader.GetString(4, Encoding.UTF8);
                     pos += 4;
 
                     // 2 bytes for the resource identifier (tag type).

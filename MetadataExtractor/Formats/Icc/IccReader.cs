@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,12 @@ using MetadataExtractor.Formats.Jpeg;
 using MetadataExtractor.IO;
 using MetadataExtractor.Util;
 
+#if NET35
+using DirectoryList = System.Collections.Generic.IList<MetadataExtractor.Directory>;
+#else
+using DirectoryList = System.Collections.Generic.IReadOnlyList<MetadataExtractor.Directory>;
+#endif
+
 namespace MetadataExtractor.Formats.Icc
 {
     /// <summary>Reads ICC profile data.</summary>
@@ -46,28 +52,20 @@ namespace MetadataExtractor.Formats.Icc
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class IccReader : IJpegSegmentMetadataReader
     {
-        private static readonly byte[] _jpegSegmentPreambleBytes = Encoding.UTF8.GetBytes("ICC_PROFILE");
+        public const string JpegSegmentPreamble = "ICC_PROFILE"; // TODO what are the extra three bytes here? are they always the same?
+        private static readonly byte[] _jpegSegmentPreambleBytes = Encoding.UTF8.GetBytes(JpegSegmentPreamble);
 
         // NOTE the header is 14 bytes, while "ICC_PROFILE" is 11
-        private const int SegmentHeaderLength = 14;
+        private const int JpegSegmentPreambleLength = 14;
 
-        public IEnumerable<JpegSegmentType> GetSegmentTypes()
-        {
-            yield return JpegSegmentType.App2;
-        }
+        ICollection<JpegSegmentType> IJpegSegmentMetadataReader.SegmentTypes => new [] { JpegSegmentType.App2 };
 
-        public
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadJpegSegments(IEnumerable<byte[]> segments, JpegSegmentType segmentType)
+        public DirectoryList ReadJpegSegments(IEnumerable<JpegSegment> segments)
         {
             // ICC data can be spread across multiple JPEG segments.
 
             // Skip any segments that do not contain the required preamble
-            var iccSegments = segments.Where(segment => segment.Length > SegmentHeaderLength && IsSubarrayEqualTo(segment, 0, _jpegSegmentPreambleBytes)).ToList();
+            var iccSegments = segments.Where(segment => segment.Bytes.Length > JpegSegmentPreambleLength && IsSubarrayEqualTo(segment.Bytes, 0, _jpegSegmentPreambleBytes)).ToList();
 
             if (iccSegments.Count == 0)
                 return new Directory[0];
@@ -75,25 +73,26 @@ namespace MetadataExtractor.Formats.Icc
             byte[] buffer;
             if (iccSegments.Count == 1)
             {
-                buffer = new byte[iccSegments[0].Length - SegmentHeaderLength];
-                Array.Copy(iccSegments[0], SegmentHeaderLength, buffer, 0, iccSegments[0].Length - SegmentHeaderLength);
+                buffer = new byte[iccSegments[0].Bytes.Length - JpegSegmentPreambleLength];
+                Array.Copy(iccSegments[0].Bytes, JpegSegmentPreambleLength, buffer, 0, iccSegments[0].Bytes.Length - JpegSegmentPreambleLength);
             }
             else
             {
                 // Concatenate all buffers
-                var totalLength = iccSegments.Sum(s => s.Length - SegmentHeaderLength);
+                var totalLength = iccSegments.Sum(s => s.Bytes.Length - JpegSegmentPreambleLength);
                 buffer = new byte[totalLength];
                 for (int i = 0, pos = 0; i < iccSegments.Count; i++)
                 {
                     var segment = iccSegments[i];
-                    Array.Copy(segment, SegmentHeaderLength, buffer, pos, segment.Length - SegmentHeaderLength);
-                    pos += segment.Length - SegmentHeaderLength;
+                    Array.Copy(segment.Bytes, JpegSegmentPreambleLength, buffer, pos, segment.Bytes.Length - JpegSegmentPreambleLength);
+                    pos += segment.Bytes.Length - JpegSegmentPreambleLength;
                 }
             }
 
-            return new[] { Extract(new ByteArrayReader(buffer)) };
+            return new Directory[] { Extract(new ByteArrayReader(buffer)) };
         }
 
+        [NotNull]
         public IccDirectory Extract([NotNull] IndexedReader reader)
         {
             // TODO review whether the 'tagPtr' values below really do require IndexedReader or whether SequentialReader may be used instead
@@ -204,7 +203,7 @@ namespace MetadataExtractor.Formats.Icc
             return Encoding.UTF8.GetString(b, 0, b.Length);
         }
 
-        private static bool IsSubarrayEqualTo<T>(T[] source, int sourceIndex, T[] pattern)
+        private static bool IsSubarrayEqualTo<T>([NotNull] T[] source, int sourceIndex, [NotNull] T[] pattern)
         {
             if (sourceIndex + pattern.Length >= source.Length)
                 return false;

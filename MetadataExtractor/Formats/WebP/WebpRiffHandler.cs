@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,6 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using JetBrains.Annotations;
 using MetadataExtractor.Formats.Exif;
@@ -67,6 +66,8 @@ namespace MetadataExtractor.Formats.WebP
                                                         fourCc == "ICCP" ||
                                                         fourCc == "XMP ";
 
+        public bool ShouldAcceptList(string fourCc) => false;
+
         public void ProcessChunk(string fourCc, byte[] payload)
         {
             switch (fourCc)
@@ -91,31 +92,41 @@ namespace MetadataExtractor.Formats.WebP
                     if (payload.Length != 10)
                         break;
 
-                    IndexedReader reader = new ByteArrayReader(payload);
-                    reader.IsMotorolaByteOrder = false;
+                    string error = null;
+                    var reader = new ByteArrayReader(payload, isMotorolaByteOrder: false);
+                    var isAnimation = false;
+                    var hasAlpha = false;
+                    var widthMinusOne = -1;
+                    var heightMinusOne = -1;
                     try
                     {
                         // Flags
-//                      var hasFragments = reader.getBit(0);
-                        var isAnimation = reader.GetBit(1);
-//                      var hasXmp = reader.getBit(2);
-//                      var hasExif = reader.getBit(3);
-                        var hasAlpha = reader.GetBit(4);
-//                      var hasIcc = reader.getBit(5);
+//                      var hasFragments = reader.GetBit(0);
+                        isAnimation = reader.GetBit(1);
+//                      var hasXmp = reader.GetBit(2);
+//                      var hasExif = reader.GetBit(3);
+                        hasAlpha = reader.GetBit(4);
+//                      var hasIcc = reader.GetBit(5);
                         // Image size
-                        var widthMinusOne = reader.GetInt24(4);
-                        var heightMinusOne = reader.GetInt24(7);
-                        var directory = new WebPDirectory();
+                        widthMinusOne = reader.GetInt24(4);
+                        heightMinusOne = reader.GetInt24(7);
+                    }
+                    catch (IOException e)
+                    {
+                        error = "Exception reading WebpRiff chunk 'VP8X' : " + e.Message;
+                    }
+
+                    var directory = new WebPDirectory();
+                    if (error == null)
+                    {
                         directory.Set(WebPDirectory.TagImageWidth, widthMinusOne + 1);
                         directory.Set(WebPDirectory.TagImageHeight, heightMinusOne + 1);
                         directory.Set(WebPDirectory.TagHasAlpha, hasAlpha);
                         directory.Set(WebPDirectory.TagIsAnimation, isAnimation);
-                        _directories.Add(directory);
                     }
-                    catch (IOException e)
-                    {
-                        Debug.WriteLine(e);
-                    }
+                    else
+                        directory.AddError(error);
+                    _directories.Add(directory);
                     break;
                 }
                 case "VP8L":
@@ -123,8 +134,11 @@ namespace MetadataExtractor.Formats.WebP
                     if (payload.Length < 5)
                         break;
 
-                    IndexedReader reader = new ByteArrayReader(payload);
-                    reader.IsMotorolaByteOrder = false;
+                    var reader = new ByteArrayReader(payload, isMotorolaByteOrder: false);
+
+                    string error = null;
+                    var widthMinusOne = -1;
+                    var heightMinusOne = -1;
                     try
                     {
                         // https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification#2_riff_header
@@ -137,18 +151,24 @@ namespace MetadataExtractor.Formats.WebP
                         var b3 = reader.GetByte(3);
                         var b4 = reader.GetByte(4);
                         // 14 bits for width
-                        var widthMinusOne = (b2 & 0x3F) << 8 | b1;
+                        widthMinusOne = (b2 & 0x3F) << 8 | b1;
                         // 14 bits for height
-                        var heightMinusOne = (b4 & 0x0F) << 10 | b3 << 2 | (b2 & 0xC0) >> 6;
-                        var directory = new WebPDirectory();
-                        directory.Set(WebPDirectory.TagImageWidth, widthMinusOne + 1);
-                        directory.Set(WebPDirectory.TagImageHeight, heightMinusOne + 1);
-                        _directories.Add(directory);
+                        heightMinusOne = (b4 & 0x0F) << 10 | b3 << 2 | (b2 & 0xC0) >> 6;
                     }
                     catch (IOException e)
                     {
-                        Debug.WriteLine(e);
+                        error = "Exception reading WebpRiff chunk 'VP8L' : " + e.Message;
                     }
+
+                    var directory = new WebPDirectory();
+                    if (error == null)
+                    {
+                        directory.Set(WebPDirectory.TagImageWidth, widthMinusOne + 1);
+                        directory.Set(WebPDirectory.TagImageHeight, heightMinusOne + 1);
+                    }
+                    else
+                        directory.AddError(error);
+                    _directories.Add(directory);
                     break;
                 }
                 case "VP8 ":
@@ -156,8 +176,11 @@ namespace MetadataExtractor.Formats.WebP
                     if (payload.Length < 10)
                         break;
 
-                    IndexedReader reader = new ByteArrayReader(payload);
-                    reader.IsMotorolaByteOrder = false;
+                    var reader = new ByteArrayReader(payload, isMotorolaByteOrder: false);
+
+                    string error = null;
+                    var width = 0;
+                    var height = 0;
                     try
                     {
                         // https://tools.ietf.org/html/rfc6386#section-9.1
@@ -168,17 +191,23 @@ namespace MetadataExtractor.Formats.WebP
                             reader.GetByte(4) != 0x01 ||
                             reader.GetByte(5) != 0x2A)
                             break;
-                        var width = reader.GetUInt16(6);
-                        var height = reader.GetUInt16(8);
-                        var directory = new WebPDirectory();
-                        directory.Set(WebPDirectory.TagImageWidth, width);
-                        directory.Set(WebPDirectory.TagImageHeight, height);
-                        _directories.Add(directory);
+                        width = reader.GetUInt16(6);
+                        height = reader.GetUInt16(8);
                     }
                     catch (IOException e)
                     {
-                        Debug.WriteLine(e);
+                        error = "Exception reading WebpRiff chunk 'VP8' : " + e.Message;
                     }
+
+                    var directory = new WebPDirectory();
+                    if (error == null)
+                    {
+                        directory.Set(WebPDirectory.TagImageWidth, width);
+                        directory.Set(WebPDirectory.TagImageHeight, height);
+                    }
+                    else
+                        directory.AddError(error);
+                    _directories.Add(directory);
                     break;
                 }
             }

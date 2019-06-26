@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,54 +28,62 @@ using System.IO;
 using System.Text;
 using JetBrains.Annotations;
 
+// ReSharper disable CommentTypo
+// ReSharper disable StringLiteralTypo
+
 namespace MetadataExtractor.Util
 {
     /// <summary>Examines the a file's first bytes and estimates the file's type.</summary>
     public static class FileTypeDetector
     {
-        private static readonly ByteTrie<FileType> _root;
-        private static readonly IEnumerable<Func<byte[], FileType>> _fixedCheckers;
-
-        static FileTypeDetector()
+        // https://en.wikipedia.org/wiki/List_of_file_signatures
+        private static readonly ByteTrie<FileType> _root = new ByteTrie<FileType>(defaultValue: FileType.Unknown)
         {
-            _root = new ByteTrie<FileType>();
-            _root.SetDefaultValue(FileType.Unknown);
+            { FileType.Jpeg, new[] { (byte)0xff, (byte)0xd8 } },
+            { FileType.Tiff, Encoding.UTF8.GetBytes("II"), new byte[] { 0x2a, 0x00 } },
+            { FileType.Tiff, Encoding.UTF8.GetBytes("MM"), new byte[] { 0x00, 0x2a } },
+            { FileType.Psd, Encoding.UTF8.GetBytes("8BPS") },
+            { FileType.Png, new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52 } },
+            { FileType.Bmp, Encoding.UTF8.GetBytes("BM") },
+            // TODO technically there are other very rare magic numbers for OS/2 BMP files
+            { FileType.Gif, Encoding.UTF8.GetBytes("GIF87a") },
+            { FileType.Gif, Encoding.UTF8.GetBytes("GIF89a") },
+            { FileType.Ico, new byte[] { 0x00, 0x00, 0x01, 0x00 } },
+            { FileType.Netpbm, Encoding.UTF8.GetBytes("P1") }, // ASCII B
+            { FileType.Netpbm, Encoding.UTF8.GetBytes("P2") }, // ASCII greysca
+            { FileType.Netpbm, Encoding.UTF8.GetBytes("P3") }, // ASCII R
+            { FileType.Netpbm, Encoding.UTF8.GetBytes("P4") }, // RAW B
+            { FileType.Netpbm, Encoding.UTF8.GetBytes("P5") }, // RAW greysca
+            { FileType.Netpbm, Encoding.UTF8.GetBytes("P6") }, // RAW R
+            { FileType.Netpbm, Encoding.UTF8.GetBytes("P7") }, // P
+            { FileType.Pcx, new byte[] { 0x0A, 0x00, 0x01 } },
+            // multiple PCX versions, explicitly list
+            { FileType.Pcx, new byte[] { 0x0A, 0x02, 0x01 } },
+            { FileType.Pcx, new byte[] { 0x0A, 0x03, 0x01 } },
+            { FileType.Pcx, new byte[] { 0x0A, 0x05, 0x01 } },
+            { FileType.Riff, Encoding.UTF8.GetBytes("RIFF") },
+            { FileType.Arw, Encoding.UTF8.GetBytes("II"), new byte[] { 0x2a, 0x00, 0x08, 0x00 } },
+            { FileType.Crw, Encoding.UTF8.GetBytes("II"), new byte[] { 0x1a, 0x00, 0x00, 0x00 }, Encoding.UTF8.GetBytes("HEAPCCDR") },
+            { FileType.Cr2, Encoding.UTF8.GetBytes("II"), new byte[] { 0x2a, 0x00, 0x10, 0x00, 0x00, 0x00, 0x43, 0x52 } },
+            // NOTE this doesn't work for NEF as it incorrectly flags many other TIFF files as being NEF
+//            { FileType.Nef, Encoding.UTF8.GetBytes("MM"), new byte[] { 0x00, 0x2a, 0x00, 0x00, 0x00, 0x08, 0x00 } },
+            { FileType.Orf, Encoding.UTF8.GetBytes("IIRO"), new byte[] { 0x08, 0x00 } },
+            { FileType.Orf, Encoding.UTF8.GetBytes("MMOR"), new byte[] { 0x00, 0x00 } },
+            { FileType.Orf, Encoding.UTF8.GetBytes("IIRS"), new byte[] { 0x08, 0x00 } },
+            { FileType.Raf, Encoding.UTF8.GetBytes("FUJIFILMCCD-RAW") },
+            { FileType.Rw2, Encoding.UTF8.GetBytes("II"), new byte[] { 0x55, 0x00 } },
+        };
 
-            // https://en.wikipedia.org/wiki/List_of_file_signatures
-            _root.AddPath(FileType.Jpeg, new[] { (byte)0xff, (byte)0xd8 });
-            _root.AddPath(FileType.Tiff, Encoding.UTF8.GetBytes("II"), new byte[] { 0x2a, 0x00 });
-            _root.AddPath(FileType.Tiff, Encoding.UTF8.GetBytes("MM"), new byte[] { 0x00, 0x2a });
-            _root.AddPath(FileType.Psd, Encoding.UTF8.GetBytes("8BPS"));
-            _root.AddPath(FileType.Png, new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52 });
-            _root.AddPath(FileType.Bmp, Encoding.UTF8.GetBytes("BM"));
-            // TODO technically there are other very rare magic numbers for OS/2 BMP files...
-            _root.AddPath(FileType.Gif, Encoding.UTF8.GetBytes("GIF87a"));
-            _root.AddPath(FileType.Gif, Encoding.UTF8.GetBytes("GIF89a"));
-            _root.AddPath(FileType.Ico, new byte[] { 0x00, 0x00, 0x01, 0x00 });
-            _root.AddPath(FileType.Pcx, new byte[] { 0x0A, 0x00, 0x01 });
-            // multiple PCX versions, explicitly listed
-            _root.AddPath(FileType.Pcx, new byte[] { 0x0A, 0x02, 0x01 });
-            _root.AddPath(FileType.Pcx, new byte[] { 0x0A, 0x03, 0x01 });
-            _root.AddPath(FileType.Pcx, new byte[] { 0x0A, 0x05, 0x01 });
-            _root.AddPath(FileType.Riff, Encoding.UTF8.GetBytes("RIFF"));
-            _root.AddPath(FileType.Arw, Encoding.UTF8.GetBytes("II"), new byte[] { 0x2a, 0x00, 0x08, 0x00 });
-            _root.AddPath(FileType.Crw, Encoding.UTF8.GetBytes("II"), new byte[] { 0x1a, 0x00, 0x00, 0x00 }, Encoding.UTF8.GetBytes("HEAPCCDR"));
-            _root.AddPath(FileType.Cr2, Encoding.UTF8.GetBytes("II"), new byte[] { 0x2a, 0x00, 0x10, 0x00, 0x00, 0x00, 0x43, 0x52 });
-            _root.AddPath(FileType.Nef, Encoding.UTF8.GetBytes("MM"), new byte[] { 0x00, 0x2a, 0x00, 0x00, 0x00, 0x80, 0x00 });
-            _root.AddPath(FileType.Orf, Encoding.UTF8.GetBytes("IIRO"), new byte[] { 0x08, 0x00 });
-            _root.AddPath(FileType.Orf, Encoding.UTF8.GetBytes("IIRS"), new byte[] { 0x08, 0x00 });
-            _root.AddPath(FileType.Raf, Encoding.UTF8.GetBytes("FUJIFILMCCD-RAW"));
-            _root.AddPath(FileType.Rw2, Encoding.UTF8.GetBytes("II"), new byte[] { 0x55, 0x00 });
-
-            _fixedCheckers = new Func<byte[], FileType>[]
-            {
-                bytes => bytes.RegionEquals(4, 4, Encoding.UTF8.GetBytes("ftyp")) ? FileType.QuickTime : FileType.Unknown
-            };
-        }
+        private static readonly IEnumerable<Func<byte[], FileType>> _fixedCheckers = new Func<byte[], FileType>[]
+        {
+            bytes => bytes.RegionEquals(4, 4, Encoding.UTF8.GetBytes("ftyp"))
+                ? FileType.QuickTime
+                : FileType.Unknown
+        };
 
         /// <summary>Examines the a file's first bytes and estimates the file's type.</summary>
         /// <exception cref="ArgumentException">Stream does not support seeking.</exception>
-        /// <exception cref="IOException">if an IO error occurred or the input stream ended unexpectedly.</exception>
+        /// <exception cref="IOException">An IO error occurred, or the input stream ended unexpectedly.</exception>
         public static FileType DetectFileType([NotNull] Stream stream)
         {
             if (!stream.CanSeek)
@@ -102,6 +110,19 @@ namespace MetadataExtractor.Util
                         return fileType;
                 }
             }
+            else if (fileType == FileType.Riff)
+            {
+                var fourCC = Encoding.UTF8.GetString(bytes, index: 8, count: 4);
+                switch (fourCC)
+                {
+                    case "WAVE":
+                        return FileType.Wav;
+                    case "AVI ":
+                        return FileType.Avi;
+                    case "WEBP":
+                        return FileType.WebP;
+                }
+            }
 
             return fileType;
         }
@@ -109,7 +130,7 @@ namespace MetadataExtractor.Util
 
     internal static class ByteArrayExtensions
     {
-        public static bool RegionEquals(this byte[] bytes, int offset, int count, byte[] comparand)
+        public static bool RegionEquals([NotNull] this byte[] bytes, int offset, int count, [NotNull] byte[] comparand)
         {
             if (offset < 0 ||                   // invalid arg
                 count < 0 ||                    // invalid arg

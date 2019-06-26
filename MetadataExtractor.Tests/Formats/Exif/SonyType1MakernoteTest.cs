@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,18 +23,19 @@
 #endregion
 
 using MetadataExtractor.Formats.Exif.Makernotes;
+using MetadataExtractor.Formats.Jpeg;
 using Xunit;
 
 namespace MetadataExtractor.Tests.Formats.Exif
 {
+    /// <summary>Unit tests for Sony (Type 1) maker notes.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class SonyType1MakernoteTest
     {
-
         [Fact]
-        public void TestSonyType1Makernote()
+        public void File1()
         {
-            var directory = ExifReaderTest.ProcessSegmentBytes<SonyType1MakernoteDirectory>("Tests/Data/sonyType1.jpg.app1");
+            var directory = ExifReaderTest.ProcessSegmentBytes<SonyType1MakernoteDirectory>("Data/sonyType1.jpg.app1", JpegSegmentType.App1);
             Assert.NotNull(directory);
             Assert.False(directory.HasError);
             var descriptor = new SonyType1MakernoteDescriptor(directory);

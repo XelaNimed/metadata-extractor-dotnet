@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,12 @@ using JetBrains.Annotations;
 using MetadataExtractor.Formats.Jpeg;
 using MetadataExtractor.IO;
 
+#if NET35
+using DirectoryList = System.Collections.Generic.IList<MetadataExtractor.Directory>;
+#else
+using DirectoryList = System.Collections.Generic.IReadOnlyList<MetadataExtractor.Directory>;
+#endif
+
 namespace MetadataExtractor.Formats.Iptc
 {
     /// <summary>Reads IPTC data.</summary>
@@ -60,24 +66,15 @@ namespace MetadataExtractor.Formats.Iptc
 
         private const byte IptcMarkerByte = 0x1c;
 
-        public IEnumerable<JpegSegmentType> GetSegmentTypes()
-        {
-            yield return JpegSegmentType.AppD;
-        }
+        ICollection<JpegSegmentType> IJpegSegmentMetadataReader.SegmentTypes => new [] { JpegSegmentType.AppD };
 
-        public
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadJpegSegments(IEnumerable<byte[]> segments, JpegSegmentType segmentType)
+        public DirectoryList ReadJpegSegments(IEnumerable<JpegSegment> segments)
         {
             // Ensure data starts with the IPTC marker byte
             return segments
-                .Where(segment => segment.Length != 0 && segment[0] == IptcMarkerByte)
-                .Select(segment => Extract(new SequentialByteArrayReader(segment), segment.Length))
-#if NET35 || PORTABLE
+                .Where(segment => segment.Bytes.Length != 0 && segment.Bytes[0] == IptcMarkerByte)
+                .Select(segment => Extract(new SequentialByteArrayReader(segment.Bytes), segment.Bytes.Length))
+#if NET35
                 .Cast<Directory>()
 #endif
                 .ToList();
@@ -87,6 +84,7 @@ namespace MetadataExtractor.Formats.Iptc
         /// <remarks>
         /// Note that IPTC data does not describe its own length, hence <paramref name="length"/> is required.
         /// </remarks>
+        [NotNull]
         public IptcDirectory Extract([NotNull] SequentialReader reader, long length)
         {
             var directory = new IptcDirectory();
@@ -114,12 +112,12 @@ namespace MetadataExtractor.Formats.Iptc
                     // NOTE have seen images where there was one extra byte at the end, giving
                     // offset==length at this point, which is not worth logging as an error.
                     if (offset != length)
-                        directory.AddError($"Invalid IPTC tag marker at offset {offset - 1}. Expected '0x{IptcMarkerByte:X2}' but got '0x{startByte:X}'.");
+                        directory.AddError($"Invalid IPTC tag marker at offset {offset - 1}. Expected '0x{IptcMarkerByte:x2}' but got '0x{startByte:x}'.");
                     break;
                 }
 
-                // we need at least five bytes left to read a tag
-                if (offset + 5 > length)
+                // we need at least four bytes left to read a tag
+                if (offset + 4 > length)
                 {
                     directory.AddError("Too few bytes remain for a valid IPTC tag");
                     break;
@@ -132,8 +130,12 @@ namespace MetadataExtractor.Formats.Iptc
                 {
                     directoryType = reader.GetByte();
                     tagType = reader.GetByte();
-                    // TODO support Extended DataSet Tag (see 1.5(c), p14, IPTC-IIMV4.2.pdf)
                     tagByteCount = reader.GetUInt16();
+                    if (tagByteCount > 0x7FFF) {
+                        // Extended DataSet Tag (see 1.5(c), p14, IPTC-IIMV4.2.pdf)
+                        tagByteCount = ((tagByteCount & 0x7FFF) << 16) | reader.GetUInt16();
+                        offset += 2;
+                    }
                     offset += 4;
                 }
                 catch (IOException)
@@ -178,7 +180,6 @@ namespace MetadataExtractor.Formats.Iptc
                 return;
             }
 
-            string str = null;
             switch (tagIdentifier)
             {
                 case IptcDirectory.TagCodedCharacterSet:
@@ -188,8 +189,7 @@ namespace MetadataExtractor.Formats.Iptc
                     if (charset == null)
                     {
                         // Unable to determine the charset, so fall through and treat tag as a regular string
-                        str = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
-                        break;
+                        charset = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
                     }
                     directory.Set(tagIdentifier, charset);
                     return;
@@ -223,45 +223,42 @@ namespace MetadataExtractor.Formats.Iptc
 
             // If we haven't returned yet, treat it as a string
             // NOTE that there's a chance we've already loaded the value as a string above, but failed to parse the value
-            if (str == null)
+            var encodingName = directory.GetString(IptcDirectory.TagCodedCharacterSet);
+            Encoding encoding = null;
+            if (encodingName != null)
             {
-                var encodingName = directory.GetString(IptcDirectory.TagCodedCharacterSet);
-                Encoding encoding = null;
-                if (encodingName != null)
+                try
                 {
-                    try
-                    {
-                        encoding = Encoding.GetEncoding(encodingName);
-                    }
-                    catch (ArgumentException)
-                    { }
+                    encoding = Encoding.GetEncoding(encodingName);
                 }
+                catch (ArgumentException)
+                { }
+            }
 
+            StringValue str;
+            if (encoding != null)
+                str = reader.GetStringValue(tagByteCount, encoding);
+            else
+            {
                 var bytes = reader.GetBytes(tagByteCount);
-
-                if (encoding == null)
-                    encoding = Iso2022Converter.GuessEncoding(bytes);
-
-                if (encoding == null)
-                    encoding = Encoding.UTF8;
-
-                str = encoding.GetString(bytes, 0, bytes.Length);
+                encoding = Iso2022Converter.GuessEncoding(bytes);
+                str = new StringValue(bytes, encoding);
             }
 
             if (directory.ContainsTag(tagIdentifier))
             {
                 // this fancy string[] business avoids using an ArrayList for performance reasons
-                var oldStrings = directory.GetStringArray(tagIdentifier);
+                var oldStrings = directory.GetStringValueArray(tagIdentifier);
 
-                string[] newStrings;
+                StringValue[] newStrings;
                 if (oldStrings == null)
                 {
                     // TODO hitting this block means any prior value(s) are discarded
-                    newStrings = new string[1];
+                    newStrings = new StringValue[1];
                 }
                 else
                 {
-                    newStrings = new string[oldStrings.Length + 1];
+                    newStrings = new StringValue[oldStrings.Length + 1];
                     Array.Copy(oldStrings, 0, newStrings, 0, oldStrings.Length);
                 }
                 newStrings[newStrings.Length - 1] = str;

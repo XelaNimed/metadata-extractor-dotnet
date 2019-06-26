@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,11 +29,12 @@ using Xunit;
 
 namespace MetadataExtractor.Tests.Formats.Jfif
 {
+    /// <summary>Unit tests for <see cref="JfifReader"/>.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class JfifReaderTest
     {
         [Fact]
-        public void TestRead()
+        public void Extract()
         {
             var jfifData = new byte[] { 74, 70, 73, 70, 0, 1, 2, 1, 0, 108, 0, 108, 0, 0 };
 

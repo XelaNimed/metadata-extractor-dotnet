@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,6 @@
 //
 #endregion
 
-using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
 using MetadataExtractor.Formats.Photoshop;
@@ -31,13 +30,14 @@ using Xunit;
 
 namespace MetadataExtractor.Tests.Formats.Photoshop
 {
+    /// <summary>Unit tests for <see cref="PsdReader"/>.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class PsdReaderTest
     {
         [NotNull]
-        public static PsdHeaderDirectory ProcessBytes([NotNull] string filePath)
+        private static PsdHeaderDirectory ProcessBytes([NotNull] string filePath)
         {
-            using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var stream = TestDataUtil.OpenRead(filePath))
             {
                 var directory = new PsdReader().Extract(new SequentialStreamReader(stream)).OfType<PsdHeaderDirectory>().FirstOrDefault();
                 Assert.NotNull(directory);
@@ -46,9 +46,9 @@ namespace MetadataExtractor.Tests.Formats.Photoshop
         }
 
         [Fact]
-        public void Test8X8X8BitGrayscale()
+        public void Psd8X8X8BitGrayscale()
         {
-            var directory = ProcessBytes("Tests/Data/8x4x8bit-Grayscale.psd");
+            var directory = ProcessBytes("Data/8x4x8bit-Grayscale.psd");
             Assert.Equal(8, directory.GetInt32(PsdHeaderDirectory.TagImageWidth));
             Assert.Equal(4, directory.GetInt32(PsdHeaderDirectory.TagImageHeight));
             Assert.Equal(8, directory.GetInt32(PsdHeaderDirectory.TagBitsPerChannel));
@@ -58,9 +58,9 @@ namespace MetadataExtractor.Tests.Formats.Photoshop
         }
 
         [Fact]
-        public void Test10X12X16BitCmyk()
+        public void Psd10X12X16BitCmyk()
         {
-            var directory = ProcessBytes("Tests/Data/10x12x16bit-CMYK.psd");
+            var directory = ProcessBytes("Data/10x12x16bit-CMYK.psd");
             Assert.Equal(10, directory.GetInt32(PsdHeaderDirectory.TagImageWidth));
             Assert.Equal(12, directory.GetInt32(PsdHeaderDirectory.TagImageHeight));
             Assert.Equal(16, directory.GetInt32(PsdHeaderDirectory.TagBitsPerChannel));

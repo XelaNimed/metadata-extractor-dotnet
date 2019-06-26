@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,13 +41,7 @@ namespace MetadataExtractor.Formats.Png
             ImageWidth = reader.GetInt32();
             ImageHeight = reader.GetInt32();
             BitsPerSample = reader.GetByte();
-
-            var colorTypeNumber = reader.GetByte();
-            var colorType = PngColorType.FromNumericValue(colorTypeNumber);
-            if (colorType == null)
-                throw new PngProcessingException("Unexpected PNG color type: " + colorTypeNumber);
-            ColorType = colorType;
-
+            ColorType = PngColorType.FromNumericValue(reader.GetByte());
             CompressionType = reader.GetByte();
             FilterMethod = reader.GetByte();
             InterlaceMethod = reader.GetByte();

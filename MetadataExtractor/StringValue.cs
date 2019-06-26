@@ -29,6 +29,7 @@ namespace MetadataExtractor
             Encoding = encoding;
         }
 
+        [NotNull]
         public byte[] Bytes { get; }
 
         [CanBeNull]
@@ -62,7 +63,23 @@ namespace MetadataExtractor
 
         short IConvertible.ToInt16(IFormatProvider provider) => short.Parse(ToString());
 
-        int IConvertible.ToInt32(IFormatProvider provider) => int.Parse(ToString());
+        int IConvertible.ToInt32(IFormatProvider provider)
+        {
+            try
+            {
+                return int.Parse(ToString());
+            }
+            catch(Exception)
+            {
+                long val = 0;
+                foreach(var b in Bytes)
+                {
+                    val = val << 8;
+                    val += b & 0xff;
+                }
+                return (int)val;
+            }
+        }
 
         long IConvertible.ToInt64(IFormatProvider provider) => long.Parse(ToString());
 
@@ -80,15 +97,10 @@ namespace MetadataExtractor
 
         #region Formatting
 
-        public override string ToString()
-        {
-            return ToString(Encoding ?? DefaultEncoding);
-        }
+        public override string ToString() => ToString(Encoding ?? DefaultEncoding);
 
-        public string ToString([NotNull] Encoding encoder)
-        {
-            return encoder.GetString(Bytes, 0, Bytes.Length);
-        }
+        [NotNull]
+        public string ToString([NotNull] Encoding encoder) => encoder.GetString(Bytes, 0, Bytes.Length);
 
         #endregion
     }

@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,10 +52,8 @@ namespace MetadataExtractor.Formats.Tiff
 
         void EndingIfd();
 
-        void Completed([NotNull] IndexedReader reader, int tiffHeaderOffset);
-
         /// <exception cref="System.IO.IOException"/>
-        bool CustomProcessTag(int tagOffset, [NotNull] ICollection<int> processedIfdOffsets, int tiffHeaderOffset, [NotNull] IndexedReader reader, int tagId, int byteCount);
+        bool CustomProcessTag(int tagOffset, [NotNull] ICollection<int> processedIfdOffsets, [NotNull] IndexedReader reader, int tagId, int byteCount);
 
         bool TryCustomProcessFormat(int tagId, TiffDataFormatCode formatCode, uint componentCount, out long byteCount);
 
@@ -65,9 +63,9 @@ namespace MetadataExtractor.Formats.Tiff
 
         void SetByteArray(int tagId, [NotNull] byte[] bytes);
 
-        void SetString(int tagId, [NotNull] StringValue str);
+        void SetString(int tagId, StringValue str);
 
-        void SetRational(int tagId, [NotNull] Rational rational);
+        void SetRational(int tagId, Rational rational);
 
         void SetRationalArray(int tagId, [NotNull] Rational[] array);
 

@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,12 +36,12 @@ namespace MetadataExtractor.IO
 
         private int _index;
 
-        public SequentialByteArrayReader([NotNull] byte[] bytes, int baseIndex = 0)
-        {
-            if (bytes == null)
-                throw new ArgumentNullException(nameof(bytes));
+        public override long Position => _index;
 
-            _bytes = bytes;
+        public SequentialByteArrayReader([NotNull] byte[] bytes, int baseIndex = 0, bool isMotorolaByteOrder = true)
+            : base(isMotorolaByteOrder)
+        {
+            _bytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
             _index = baseIndex;
         }
 
@@ -52,6 +52,8 @@ namespace MetadataExtractor.IO
 
             return _bytes[_index++];
         }
+
+        public override SequentialReader WithByteOrder(bool isMotorolaByteOrder) => isMotorolaByteOrder == IsMotorolaByteOrder ? this : new SequentialByteArrayReader(_bytes, _index, isMotorolaByteOrder);
 
         public override byte[] GetBytes(int count)
         {
@@ -64,6 +66,15 @@ namespace MetadataExtractor.IO
             return bytes;
         }
 
+        public override void GetBytes(byte[] buffer, int offset, int count)
+        {
+            if (_index + count > _bytes.Length)
+                throw new IOException("End of data reached.");
+
+            Array.Copy(_bytes, _index, buffer, offset, count);
+            _index += count;
+        }
+
         public override void Skip(long n)
         {
             if (n < 0)
@@ -72,7 +83,7 @@ namespace MetadataExtractor.IO
             if (_index + n > _bytes.Length)
                 throw new IOException("End of data reached.");
 
-            _index += unchecked((int)(n));
+            _index += unchecked((int)n);
         }
 
         public override bool TrySkip(long n)
@@ -80,7 +91,7 @@ namespace MetadataExtractor.IO
             if (n < 0)
                 throw new ArgumentException("n must be zero or greater.");
 
-            _index += unchecked((int)(n));
+            _index += unchecked((int)n);
 
             if (_index > _bytes.Length)
             {
@@ -90,5 +101,10 @@ namespace MetadataExtractor.IO
 
             return true;
         }
-    }
+
+		public override bool IsCloserToEnd(long numberOfBytes)
+		{
+			return _index + numberOfBytes > _bytes.Length;
+		}
+	}
 }

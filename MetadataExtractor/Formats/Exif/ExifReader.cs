@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,14 +22,20 @@
 //
 #endregion
 
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Text;
+using JetBrains.Annotations;
 using MetadataExtractor.Formats.Jpeg;
 using MetadataExtractor.Formats.Tiff;
 using MetadataExtractor.IO;
+
+#if NET35
+using DirectoryList = System.Collections.Generic.IList<MetadataExtractor.Directory>;
+#else
+using DirectoryList = System.Collections.Generic.IReadOnlyList<MetadataExtractor.Directory>;
+#endif
 
 namespace MetadataExtractor.Formats.Exif
 {
@@ -42,58 +48,35 @@ namespace MetadataExtractor.Formats.Exif
     public sealed class ExifReader : IJpegSegmentMetadataReader
     {
         /// <summary>Exif data stored in JPEG files' APP1 segment are preceded by this six character preamble.</summary>
-        private const string JpegSegmentPreamble = "Exif\x0\x0";
+        public const string JpegSegmentPreamble = "Exif\x0\x0";
 
-        public bool StoreThumbnailBytes { get; set; } = true;
+        ICollection<JpegSegmentType> IJpegSegmentMetadataReader.SegmentTypes => new [] { JpegSegmentType.App1 };
 
-        public IEnumerable<JpegSegmentType> GetSegmentTypes()
+        public DirectoryList ReadJpegSegments(IEnumerable<JpegSegment> segments)
         {
-            yield return JpegSegmentType.App1;
-        }
-
-        public
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            ReadJpegSegments(IEnumerable<byte[]> segments, JpegSegmentType segmentType)
-        {
-            Debug.Assert(segmentType == JpegSegmentType.App1);
-
             return segments
-                .Where(segment => segment.Length >= JpegSegmentPreamble.Length && Encoding.UTF8.GetString(segment, 0, JpegSegmentPreamble.Length) == JpegSegmentPreamble)
-                .SelectMany(segment => Extract(new ByteArrayReader(segment), JpegSegmentPreamble.Length))
+                .Where(segment => segment.Bytes.Length >= JpegSegmentPreamble.Length && Encoding.UTF8.GetString(segment.Bytes, 0, JpegSegmentPreamble.Length) == JpegSegmentPreamble)
+                .SelectMany(segment => Extract(new ByteArrayReader(segment.Bytes, baseOffset: JpegSegmentPreamble.Length)))
                 .ToList();
         }
 
         /// <summary>
         /// Reads TIFF formatted Exif data a specified offset within a <see cref="IndexedReader"/>.
         /// </summary>
-        public
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            Extract(IndexedReader reader, int readerOffset = 0)
+        [NotNull]
+        public DirectoryList Extract([NotNull] IndexedReader reader)
         {
             var directories = new List<Directory>();
+            var exifTiffHandler = new ExifTiffHandler(directories);
 
             try
             {
                 // Read the TIFF-formatted Exif data
-                TiffReader.ProcessTiff(reader, new ExifTiffHandler(directories, StoreThumbnailBytes), readerOffset);
+                TiffReader.ProcessTiff(reader, exifTiffHandler);
             }
-            catch (TiffProcessingException e)
+            catch (Exception e)
             {
-                // TODO what do to with this error state?
-                Debug.WriteLine(e);
-            }
-            catch (IOException e)
-            {
-                // TODO what do to with this error state?
-                Debug.WriteLine(e);
+                exifTiffHandler.Error("Exception processing TIFF data: " + e.Message);
             }
 
             return directories;

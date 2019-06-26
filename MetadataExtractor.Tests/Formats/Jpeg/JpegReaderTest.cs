@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,57 +22,50 @@
 //
 #endregion
 
-using System.IO;
-using JetBrains.Annotations;
 using MetadataExtractor.Formats.Jpeg;
 using Xunit;
 
 namespace MetadataExtractor.Tests.Formats.Jpeg
 {
+    /// <summary>Unit tests for <see cref="JpegReader"/>.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class JpegReaderTest
     {
-        [NotNull]
-        private static JpegDirectory ProcessBytes([NotNull] string filePath)
-        {
-            var directory = new JpegReader().Extract(File.ReadAllBytes(filePath), JpegSegmentType.Sof0);
-            Assert.NotNull(directory);
-            return directory;
-        }
-
         private readonly JpegDirectory _directory;
 
         public JpegReaderTest()
         {
-            _directory = ProcessBytes("Tests/Data/simple.jpg.sof0");
+            var sof0 = new JpegSegment(JpegSegmentType.Sof0, TestDataUtil.GetBytes("Data/simple.jpg.sof0"), offset: 0);
+
+            _directory = new JpegReader().Extract(sof0);
         }
 
         [Fact]
-        public void TestExtract_Width()
+        public void Extract_Width()
         {
             Assert.Equal(800, _directory.GetInt32(JpegDirectory.TagImageWidth));
         }
 
         [Fact]
-        public void TestExtract_Height()
+        public void Extract_Height()
         {
             Assert.Equal(600, _directory.GetInt32(JpegDirectory.TagImageHeight));
         }
 
         [Fact]
-        public void TestExtract_DataPrecision()
+        public void Extract_DataPrecision()
         {
             Assert.Equal(8, _directory.GetInt32(JpegDirectory.TagDataPrecision));
         }
 
         [Fact]
-        public void TestExtract_NumberOfComponents()
+        public void Extract_NumberOfComponents()
         {
             Assert.Equal(3, _directory.GetInt32(JpegDirectory.TagNumberOfComponents));
         }
 
         [Fact]
-        public void TestComponentData1()
+        public void ComponentData1()
         {
             var component = (JpegComponent)_directory.GetObject(JpegDirectory.TagComponentData1);
             Assert.NotNull(component);
@@ -84,7 +77,7 @@ namespace MetadataExtractor.Tests.Formats.Jpeg
         }
 
         [Fact]
-        public void TestComponentData2()
+        public void ComponentData2()
         {
             var component = (JpegComponent)_directory.GetObject(JpegDirectory.TagComponentData2);
             Assert.NotNull(component);
@@ -97,7 +90,7 @@ namespace MetadataExtractor.Tests.Formats.Jpeg
         }
 
         [Fact]
-        public void TestComponentData3()
+        public void ComponentData3()
         {
             var component = (JpegComponent)_directory.GetObject(JpegDirectory.TagComponentData3);
             Assert.NotNull(component);

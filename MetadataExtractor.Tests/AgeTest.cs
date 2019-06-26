@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,15 +22,17 @@
 //
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using Xunit;
 
 namespace MetadataExtractor.Tests
 {
+    /// <summary>Unit tests for <see cref="Age"/>.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class AgeTest
     {
         [Fact]
-        public void TestParse()
+        public void Parse()
         {
             var age = Age.FromPanasonicString("0031:07:15 00:00:00");
             Assert.NotNull(age);
@@ -45,7 +47,9 @@ namespace MetadataExtractor.Tests
         }
 
         [Fact]
-        public void TestEqualsAndHashCode()
+        [SuppressMessage("ReSharper", "EqualExpressionComparison")]
+        [SuppressMessage("ReSharper", "SuspiciousTypeConversion.Global")]
+        public void EqualsAndHashCode()
         {
             var age1 = new Age(10, 11, 12, 13, 14, 15);
             var age2 = new Age(10, 11, 12, 13, 14, 15);

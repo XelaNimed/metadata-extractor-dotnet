@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -73,10 +73,9 @@ namespace MetadataExtractor.Formats.Png
         [CanBeNull]
         public string GetColorTypeDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(PngDirectory.TagColorType, out value))
+            if (!Directory.TryGetInt32(PngDirectory.TagColorType, out int value))
                 return null;
-            return PngColorType.FromNumericValue(value)?.Description;
+            return PngColorType.FromNumericValue(value).Description;
         }
 
         [CanBeNull]
@@ -118,8 +117,7 @@ namespace MetadataExtractor.Formats.Png
         [CanBeNull]
         public string GetLastModificationTimeDescription()
         {
-            DateTime value;
-            if (!Directory.TryGetDateTime(PngDirectory.TagLastModificationTime, out value))
+            if (!Directory.TryGetDateTime(PngDirectory.TagLastModificationTime, out DateTime value))
                 return null;
 
             return value.ToString("yyyy:MM:dd HH:mm:ss");
@@ -145,8 +143,7 @@ namespace MetadataExtractor.Formats.Png
         public string GetBackgroundColorDescription()
         {
             var bytes = Directory.GetByteArray(PngDirectory.TagBackgroundColor);
-            int colorType;
-            if (bytes == null || !Directory.TryGetInt32(PngDirectory.TagColorType, out colorType))
+            if (bytes == null || !Directory.TryGetInt32(PngDirectory.TagColorType, out int colorType))
                 return null;
 
             var reader = new SequentialByteArrayReader(bytes);

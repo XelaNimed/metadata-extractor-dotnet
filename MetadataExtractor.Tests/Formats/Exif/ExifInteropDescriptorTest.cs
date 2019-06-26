@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,29 +27,27 @@ using Xunit;
 
 namespace MetadataExtractor.Tests.Formats.Exif
 {
-    /// <summary>
-    /// Unit tests for <see cref="ExifInteropDescriptor"/>.
-    /// </summary>
+    /// <summary>Unit tests for <see cref="ExifInteropDescriptor"/>.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class ExifInteropDescriptorTest
     {
-
         [Fact]
-        public void TestGetInteropVersionDescription()
+        public void GetInteropVersionDescription()
         {
             var directory = new ExifInteropDirectory();
             directory.Set(ExifDirectoryBase.TagInteropVersion, new[] { 0, 1, 0, 0 });
+
             var descriptor = new ExifInteropDescriptor(directory);
             Assert.Equal("1.00", descriptor.GetDescription(ExifDirectoryBase.TagInteropVersion));
             Assert.Equal("1.00", descriptor.GetInteropVersionDescription());
         }
 
-
         [Fact]
-        public void TestGetInteropIndexDescription()
+        public void GetInteropIndexDescription()
         {
             var directory = new ExifInteropDirectory();
             directory.Set(ExifDirectoryBase.TagInteropIndex, "R98");
+
             var descriptor = new ExifInteropDescriptor(directory);
             Assert.Equal("Recommended Exif Interoperability Rules (ExifR98)", descriptor.GetDescription(ExifDirectoryBase.TagInteropIndex));
             Assert.Equal("Recommended Exif Interoperability Rules (ExifR98)", descriptor.GetInteropIndexDescription());

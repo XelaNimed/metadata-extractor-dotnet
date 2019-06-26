@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -124,7 +124,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             { TagCameraSettings, "Camera Settings" },
             { TagWhiteBalance, "White Balance" },
             { TagExtraInfo, "Extra Info" },
-            { TagPrintImageMatchingInfo, "Print Image Matching Info" },
+            { TagPrintImageMatchingInfo, "Print Image Matching (PIM) Info" },
             { TagMultiBurstMode, "Multi Burst Mode" },
             { TagMultiBurstImageWidth, "Multi Burst Image Width" },
             { TagMultiBurstImageHeight, "Multi Burst Image Height" },

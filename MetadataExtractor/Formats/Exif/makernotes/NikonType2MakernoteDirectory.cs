@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -823,7 +823,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
 
         public const int TagUnknown51 = 0x0103;
 
-        public const int TagPrintIM = 0x0E00;
+        public const int TagPrintImageMatchingInfo = 0x0E00;
 
         /// <summary>Data about changes set by Nikon Capture Editor.</summary>
         /// <remarks>
@@ -957,7 +957,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             { TagUnknown49, "Unknown 49" },
             { TagUnknown50, "Unknown 50" },
             { TagUnknown51, "Unknown 51" },
-            { TagPrintIM, "Print IM" },
+            { TagPrintImageMatchingInfo, "Print Image Matching (PIM) Info" },
             { TagUnknown52, "Unknown 52" },
             { TagUnknown53, "Unknown 53" },
             { TagNikonCaptureVersion, "Nikon Capture Version" },

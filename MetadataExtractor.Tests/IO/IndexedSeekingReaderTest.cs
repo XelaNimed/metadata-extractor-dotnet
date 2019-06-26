@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,13 +29,14 @@ using Xunit;
 
 namespace MetadataExtractor.Tests.IO
 {
+    /// <summary>Unit tests for <see cref="IndexedSeekingReader"/>.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class IndexedSeekingReaderTest : IndexedReaderTestBase, IDisposable
     {
         private string _tempFile;
         private Stream _stream;
 
-        protected override IndexedReader CreateReader(byte[] bytes)
+        protected override IndexedReader CreateReader(params byte[] bytes)
         {
             try
             {
@@ -61,7 +62,7 @@ namespace MetadataExtractor.Tests.IO
         {
             if (_stream != null)
             {
-                _stream.Close();
+                _stream.Dispose();
                 _stream = null;
             }
 
@@ -74,7 +75,7 @@ namespace MetadataExtractor.Tests.IO
         }
 
         [Fact]
-        public void TestConstructWithNullBufferThrows()
+        public void ConstructWithNullBufferThrows()
         {
             // ReSharper disable once AssignNullToNotNullAttribute
             Assert.Throws<ArgumentNullException>(() => new IndexedSeekingReader(null));

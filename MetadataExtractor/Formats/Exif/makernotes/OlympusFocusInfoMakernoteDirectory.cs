@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         public const int TagInternalFlash = 0x1208;
         public const int TagManualFlash = 0x1209;
         public const int TagMacroLed = 0x120A;
-        
+
         public const int TagSensorTemperature = 0x1500;
 
         public const int TagImageStabilization = 0x1600;
@@ -85,7 +85,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             { TagMacroLed, "Macro LED" },
             { TagSensorTemperature, "Sensor Temperature" },
             { TagImageStabilization, "Image Stabilization" }
-    };
+        };
 
         public OlympusFocusInfoMakernoteDirectory()
         {
@@ -93,12 +93,6 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         }
 
         public override string Name => "Olympus Focus Info";
-
-        public override void Set(int tagType, object value)
-        {
-            var bytes = value as byte[];
-            base.Set(tagType, value);
-        }
 
         protected override bool TryGetTagName(int tagType, out string tagName)
         {

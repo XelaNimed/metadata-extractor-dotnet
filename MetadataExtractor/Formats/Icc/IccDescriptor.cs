@@ -1,6 +1,6 @@
 ﻿#region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -91,7 +91,7 @@ namespace MetadataExtractor.Formats.Icc
                 {
                     case IccTagType.Text:
                     {
-#if !PORTABLE
+#if !NETSTANDARD1_3
                         try
                         {
                             return Encoding.ASCII.GetString(bytes, 8, bytes.Length - 8 - 1);
@@ -278,14 +278,14 @@ namespace MetadataExtractor.Formats.Icc
             var res = string.Empty;
             for (var i = precision; i > 0; i--)
             {
-                var cour = unchecked((byte)(Math.Abs(rest % 10)));
+                var cour = unchecked((byte)Math.Abs(rest % 10));
                 rest /= 10;
                 if (res.Length > 0 || zeroes || cour != 0 || i == 1)
                     res = cour + res;
             }
 
             intPart += rest;
-            var isNegative = ((value < 0) && (intPart != 0 || restKept != 0));
+            var isNegative = value < 0 && (intPart != 0 || restKept != 0);
             return (isNegative ? "-" : string.Empty) + intPart + "." + res;
         }
 
@@ -355,8 +355,7 @@ namespace MetadataExtractor.Formats.Icc
         [CanBeNull]
         private string GetProfileVersionDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(IccDirectory.TagProfileVersion, out value))
+            if (!Directory.TryGetInt32(IccDirectory.TagProfileVersion, out int value))
                 return null;
 
             var m = (byte)(value >> 24);
@@ -368,8 +367,7 @@ namespace MetadataExtractor.Formats.Icc
         [CanBeNull]
         private string GetProfileDateTimeDescription()
         {
-            DateTime value;
-            if (!Directory.TryGetDateTime(IccDirectory.TagProfileDateTime, out value))
+            if (!Directory.TryGetDateTime(IccDirectory.TagProfileDateTime, out DateTime value))
                 return null;
 
             return value.ToString("yyyy:MM:dd HH:mm:ss");

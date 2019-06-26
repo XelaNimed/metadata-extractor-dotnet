@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,10 +21,8 @@
 //
 #endregion
 
-using System;
-using System.Text;
-using JetBrains.Annotations;
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace MetadataExtractor.Formats.Exif.Makernotes
 {
@@ -90,32 +88,30 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
                 "Off", "On");
         }
 
-        [CanBeNull]
         /// <remarks>
         /// this rational value looks like it is in mm when the denominator is
         /// 1 (E-1), and cm when denominator is 10 (E-300), so if we ignore the
         /// denominator we are consistently in mm - PH
         /// </remarks>
+        [CanBeNull]
         public string GetFocusDistanceDescription()
         {
-            Rational value;
-            if (!Directory.TryGetRational(OlympusFocusInfoMakernoteDirectory.TagFocusDistance, out value))
+            if (!Directory.TryGetRational(OlympusFocusInfoMakernoteDirectory.TagFocusDistance, out Rational value))
                 return "inf";
-            if (value.Numerator == 0xFFFFFFFF)
+            if (value.Numerator == 0xFFFFFFFF || value.Numerator == 0x00000000)
                 return "inf";
 
             return value.Numerator / 1000.0 + " m";
         }
 
-        [CanBeNull]
         /// <remarks>
         /// <para>TODO: Complete when Camera Model is available.</para>
         /// <para>There are differences in how to interpret this tag that can only be reconciled by knowing the model.</para>
         /// </remarks>
+        [CanBeNull]
         public string GetAfPointDescription()
         {
-            short value;
-            if (!Directory.TryGetInt16(OlympusFocusInfoMakernoteDirectory.TagAfPoint, out value))
+            if (!Directory.TryGetInt16(OlympusFocusInfoMakernoteDirectory.TagAfPoint, out short value))
                 return null;
 
             return value.ToString();
@@ -129,7 +125,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
                 return null;
 
             var join = $"{values[0]} {values[1]}";
-            
+
             switch (join)
             {
                 case "0 0":
@@ -155,8 +151,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             if (values == null)
             {
                 // check if it's only one value long also
-                short value;
-                if (!Directory.TryGetInt16(OlympusFocusInfoMakernoteDirectory.TagExternalFlashZoom, out value))
+                if (!Directory.TryGetInt16(OlympusFocusInfoMakernoteDirectory.TagExternalFlashZoom, out short value))
                     return null;
 
                 values = new ushort[1];
@@ -166,7 +161,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             if (values.Length == 0)
                 return null;
 
-            var join = $"{values[0]}" + ((values.Length > 1) ? $"{ values[1]}" : "");
+            var join = $"{values[0]}" + (values.Length > 1 ? $"{ values[1]}" : "");
 
             switch (join)
             {
@@ -195,8 +190,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
 
             if (values[1] == 1)
                 return "Full";
-            else
-                return "On " + 1.0 / values[1] + " strength)";
+            return "On (1/" + values[1] + " strength)";
         }
 
         [CanBeNull]
@@ -206,34 +200,30 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
                 "Off", "On");
         }
 
-        [CanBeNull]
         /// <remarks>
         /// <para>TODO: Complete when Camera Model is available.</para>
         /// <para>There are differences in how to interpret this tag that can only be reconciled by knowing the model.</para>
         /// </remarks>
+        [CanBeNull]
         public string GetSensorTemperatureDescription()
         {
             return Directory.GetString(OlympusFocusInfoMakernoteDirectory.TagSensorTemperature);
         }
 
-        [CanBeNull]
         /// <remarks>
-        /// ref http://fourthirdsphoto.com/vbb/showpost.php?p=107607&postcount=15
         /// <para> if the first 4 bytes are non-zero, then bit 0x01 of byte 44 gives the stabilization mode</para>
         /// <notes>(the other value is more reliable, so ignore this totally if the other exists)</notes>
         /// </remarks>
+        [CanBeNull]
         public string GetImageStabilizationDescription()
         {
             var values = Directory.GetByteArray(OlympusFocusInfoMakernoteDirectory.TagImageStabilization);
             if (values == null)
                 return null;
-            
-            if((values[0] | values[1] | values[2] | values[3]) == 0x0)
+
+            if ((values[0] | values[1] | values[2] | values[3]) == 0x0)
                 return "Off";
-            else
-                return "On, " + ((values[43] & 1) > 0 ? "Mode 1" : "Mode 2");
-
+            return "On, " + ((values[43] & 1) > 0 ? "Mode 1" : "Mode 2");
         }
-
     }
 }

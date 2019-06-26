@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,7 @@ namespace MetadataExtractor.Formats.Adobe
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public class AdobeJpegDescriptor : TagDescriptor<AdobeJpegDirectory>
     {
-        public AdobeJpegDescriptor(AdobeJpegDirectory directory)
+        public AdobeJpegDescriptor([NotNull] AdobeJpegDirectory directory)
             : base(directory)
         {
         }
@@ -52,8 +52,7 @@ namespace MetadataExtractor.Formats.Adobe
         [CanBeNull]
         public string GetDctEncodeVersionDescription()
         {
-            int value;
-            if (!Directory.TryGetInt32(AdobeJpegDirectory.TagDctEncodeVersion, out value))
+            if (!Directory.TryGetInt32(AdobeJpegDirectory.TagDctEncodeVersion, out int value))
                 return null;
 
             return value == 0x64 ? "100" : value.ToString();

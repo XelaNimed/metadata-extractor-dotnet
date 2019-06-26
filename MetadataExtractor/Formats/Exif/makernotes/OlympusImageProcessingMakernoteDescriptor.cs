@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@
 //
 #endregion
 
-using System;
 using System.Text;
 using JetBrains.Annotations;
 using System.Diagnostics.CodeAnalysis;
@@ -32,7 +31,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
     /// Provides human-readable string representations of tag values stored in a <see cref="OlympusImageProcessingMakernoteDirectory"/>.
     /// </summary>
     /// <remarks>
-    /// Some Description functions converted from Exiftool version 10.10 created by Phil Harvey
+    /// Some Description functions converted from Exiftool version 10.33 created by Phil Harvey
     /// http://www.sno.phy.queensu.ca/~phil/exiftool/
     /// lib\Image\ExifTool\Olympus.pm
     /// </remarks>
@@ -64,6 +63,10 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
                     return GetMultipleExposureModeDescription();
                 case OlympusImageProcessingMakernoteDirectory.TagAspectRatio:
                     return GetAspectRatioDescription();
+                case OlympusImageProcessingMakernoteDirectory.TagKeystoneCompensation:
+                    return GetKeystoneCompensationDescription();
+                case OlympusImageProcessingMakernoteDirectory.TagKeystoneDirection:
+                    return GetKeystoneDirectionDescription();
                 default:
                     return base.GetDescription(tagType);
             }
@@ -96,8 +99,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
         [CanBeNull]
         public string GetNoiseReduction2Description()
         {
-            int value;
-            if (!Directory.TryGetInt32(OlympusImageProcessingMakernoteDirectory.TagNoiseReduction2, out value))
+            if (!Directory.TryGetInt32(OlympusImageProcessingMakernoteDirectory.TagNoiseReduction2, out int value))
                 return null;
 
             if (value == 0)
@@ -134,8 +136,7 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             if (values == null)
             {
                 // check if it's only one value long also
-                int value;
-                if (!Directory.TryGetInt32(OlympusImageProcessingMakernoteDirectory.TagMultipleExposureMode, out value))
+                if (!Directory.TryGetInt32(OlympusImageProcessingMakernoteDirectory.TagMultipleExposureMode, out int value))
                     return null;
 
                 values = new ushort[1];
@@ -229,6 +230,39 @@ namespace MetadataExtractor.Formats.Exif.Makernotes
             }
 
             return ret;
+        }
+
+        [CanBeNull]
+        public string GetKeystoneCompensationDescription()
+        {
+            var values = Directory.GetObject(OlympusImageProcessingMakernoteDirectory.TagKeystoneCompensation) as byte[];
+            if (values == null || values.Length < 2)
+                return null;
+
+            var join = $"{values[0]} {values[1]}";
+
+            string ret;
+            switch (join)
+            {
+                case "0 0":
+                    ret = "Off";
+                    break;
+                case "0 1":
+                    ret = "On";
+                    break;
+                default:
+                    ret = "Unknown (" + join + ")";
+                    break;
+            }
+
+            return ret;
+        }
+
+        [CanBeNull]
+        public string GetKeystoneDirectionDescription()
+        {
+            return GetIndexedDescription(OlympusImageProcessingMakernoteDirectory.TagKeystoneDirection,
+                "Vertical", "Horizontal");
         }
     }
 }

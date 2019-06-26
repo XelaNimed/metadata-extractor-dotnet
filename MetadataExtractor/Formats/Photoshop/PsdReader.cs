@@ -1,6 +1,6 @@
 #region License
 //
-// Copyright 2002-2016 Drew Noakes
+// Copyright 2002-2019 Drew Noakes
 // Ported from Java to C# by Yakov Danilov for Imazen LLC in 2014
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,19 +28,20 @@ using System.IO;
 using JetBrains.Annotations;
 using MetadataExtractor.IO;
 
+#if NET35
+using DirectoryList = System.Collections.Generic.IList<MetadataExtractor.Directory>;
+#else
+using DirectoryList = System.Collections.Generic.IReadOnlyList<MetadataExtractor.Directory>;
+#endif
+
 namespace MetadataExtractor.Formats.Photoshop
 {
     /// <summary>Reads metadata stored within PSD file format data.</summary>
     /// <author>Drew Noakes https://drewnoakes.com</author>
     public sealed class PsdReader
     {
-        public
-#if NET35 || PORTABLE
-            IList<Directory>
-#else
-            IReadOnlyList<Directory>
-#endif
-            Extract([NotNull] SequentialReader reader)
+        [NotNull]
+        public DirectoryList Extract([NotNull] SequentialReader reader)
         {
             var directory = new PsdHeaderDirectory();
 
@@ -84,7 +85,7 @@ namespace MetadataExtractor.Formats.Photoshop
             }
 
             if (directory.HasError)
-                return new[] { directory };
+                return new Directory[] { directory };
 
             IEnumerable<Directory> photoshopDirectories = null;
 
